@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-interface Params {
+interface RouteContext {
   params: Promise<{
     id: string;
   }>;
 }
 
-export async function GET(req: NextRequest, { params }: Params) {
+export async function GET(_req: NextRequest, { params }: RouteContext) {
   try {
     const { id: projectId } = await params;
+
     const boards = await prisma.board.findMany({
       where: { projectId },
       include: {
@@ -19,6 +20,8 @@ export async function GET(req: NextRequest, { params }: Params) {
 
     return NextResponse.json(boards);
   } catch (error) {
+    console.error("Failed to fetch boards", error);
+
     return NextResponse.json(
       { error: "Failed to fetch boards" },
       { status: 500 },
@@ -26,11 +29,10 @@ export async function GET(req: NextRequest, { params }: Params) {
   }
 }
 
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, { params }: RouteContext) {
   try {
     const { id: projectId } = await params;
-    const body = await req.json();
-    const { name, type } = body;
+    const { name, type } = await req.json();
 
     const board = await prisma.board.create({
       data: {
@@ -53,6 +55,8 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     return NextResponse.json(board, { status: 201 });
   } catch (error) {
+    console.error("Failed to create board", error);
+
     return NextResponse.json(
       { error: "Failed to create board" },
       { status: 500 },

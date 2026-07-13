@@ -7,7 +7,7 @@ interface Params {
   }>;
 }
 
-export async function GET(req: NextRequest, { params }: Params) {
+export async function GET({ params }: Params) {
   try {
     const { id } = await params;
     const task = await prisma.task.findUnique({
@@ -31,6 +31,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 
     return NextResponse.json(task);
   } catch (error) {
+    console.error("Failed to fetch task", error);
     return NextResponse.json(
       { error: "Failed to fetch task" },
       { status: 500 },
@@ -53,6 +54,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     return NextResponse.json(task);
   } catch (error) {
+    console.error("Failed to update task", error);
     return NextResponse.json(
       { error: "Failed to update task" },
       { status: 500 },
@@ -69,6 +71,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error("Failed to delete task", error);
     return NextResponse.json(
       { error: "Failed to delete task" },
       { status: 500 },

@@ -7,7 +7,7 @@ interface Params {
   }>;
 }
 
-export async function GET(req: NextRequest, { params }: Params) {
+export async function GET({ params }: Params) {
   try {
     const { id: projectId } = await params;
     const sprints = await prisma.sprint.findMany({
@@ -19,6 +19,8 @@ export async function GET(req: NextRequest, { params }: Params) {
 
     return NextResponse.json(sprints);
   } catch (error) {
+    console.error("Failed to fetch sprints", error);
+
     return NextResponse.json(
       { error: "Failed to fetch sprints" },
       { status: 500 },
@@ -43,6 +45,8 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     return NextResponse.json(sprint, { status: 201 });
   } catch (error) {
+    console.error("Failed to create sprint", error);
+
     return NextResponse.json(
       { error: "Failed to create sprint" },
       { status: 500 },
