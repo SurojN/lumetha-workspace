@@ -20,13 +20,17 @@ import {
   Search,
   Settings2,
   Sparkles,
+  LogOut,
+  ShieldCheck,
   Users,
   X,
 } from "lucide-react";
+import { logout } from "@/app/actions/auth";
 
-type Status = "backlog" | "progress" | "review" | "done";
+type Status = "backlog" | "progress" | "pm_review" | "testing" | "done";
 type Priority = "Urgent" | "High" | "Medium" | "Low";
 type ProjectView = "Board" | "Backlog" | "Timeline" | "Reports";
+type StatusFilter = Status | "all";
 
 type Issue = {
   id: string;
@@ -58,10 +62,16 @@ const columns: { id: Status; name: string; dot: string; accent: string }[] = [
     accent: "border-blue-400",
   },
   {
-    id: "review",
-    name: "In review",
+    id: "pm_review",
+    name: "PM review",
     dot: "bg-violet-500",
     accent: "border-violet-400",
+  },
+  {
+    id: "testing",
+    name: "Testing",
+    dot: "bg-amber-500",
+    accent: "border-amber-400",
   },
   {
     id: "done",
@@ -99,7 +109,7 @@ function Avatar({ issue }: { issue: Issue }) {
   );
 }
 
-export function LumethaWorkspace() {
+export function LumethaWorkspace({ userName, companyId, companyName, companyDomain }: { userName: string; companyId?: string; companyName?: string; companyDomain?: string | null }) {
   const [issues, setIssues] = useState(initialIssues);
   const [workspaceName, setWorkspaceName] = useState("My project");
   const [query, setQuery] = useState("");
@@ -112,6 +122,11 @@ export function LumethaWorkspace() {
   const [dragging, setDragging] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<ProjectView>("Board");
   const [hydrated, setHydrated] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -206,12 +221,13 @@ export function LumethaWorkspace() {
     <main className="min-h-screen bg-[#f7f8fa] text-slate-900">
       <div className="flex min-h-screen">
         <aside className="hidden w-[244px] shrink-0 border-r border-slate-200 bg-white lg:flex lg:flex-col">
-          <div className="flex h-16 items-center gap-3 border-b border-slate-100 px-5">
+          <div className="relative flex h-16 items-center gap-3 border-b border-slate-100 px-5">
             <div className="grid h-8 w-8 place-items-center rounded-lg bg-[#202b4b] text-sm font-bold text-white">
               L
             </div>
             <span className="font-semibold tracking-tight">Lumetha</span>
-            <ChevronDown className="ml-auto h-4 w-4 text-slate-400" />
+            <button onClick={() => setWorkspaceMenuOpen((current) => !current)} aria-label="Open workspace menu" aria-expanded={workspaceMenuOpen} className="ml-auto rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><ChevronDown className="h-4 w-4" /></button>
+            {workspaceMenuOpen && <div className="absolute left-3 right-3 top-14 z-30 rounded-lg border border-slate-200 bg-white p-1 shadow-xl" role="menu"><button onClick={() => { setWorkspaceMenuOpen(false); setSettingsOpen(true); }} className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-slate-50" role="menuitem"><Settings2 className="h-4 w-4 text-slate-500" />Company settings</button><form action={logout}><button className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-rose-700 hover:bg-rose-50" role="menuitem"><LogOut className="h-4 w-4" />Sign out</button></form></div>}
           </div>
           <nav className="flex-1 px-3 py-5">
             <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
@@ -235,23 +251,28 @@ export function LumethaWorkspace() {
             </button>
           </nav>
           <div className="border-t border-slate-100 p-3">
-            <NavItem icon={Settings2} label="Settings" />
-            <div className="mt-3 flex items-center gap-3 rounded-md px-3 py-2">
-              <span className="grid h-7 w-7 place-items-center rounded-full bg-[#1e3a5f] text-[10px] font-bold text-white">
-                AD
-              </span>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">Workspace admin</p>
-                <p className="truncate text-xs text-slate-500">Add authentication before launch</p>
-              </div>
-              <MoreHorizontal className="ml-auto h-4 w-4 text-slate-400" />
+            <NavItem icon={Settings2} label="Settings" onClick={() => setSettingsOpen(true)} />
+            <div className="relative mt-3">
+              <button onClick={() => setAccountOpen((current) => !current)} className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left hover:bg-slate-50" aria-expanded={accountOpen} aria-haspopup="menu">
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-[#1e3a5f] text-[10px] font-bold text-white">
+                  AD
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{userName}</p>
+                  <p className="truncate text-xs text-slate-500">Company administrator</p>
+                </div>
+                <MoreHorizontal className="ml-auto h-4 w-4 text-slate-400" />
+              </button>
+              {accountOpen && <div className="absolute bottom-11 left-2 right-2 z-30 rounded-lg border border-slate-200 bg-white p-1 shadow-xl" role="menu">
+                <form action={logout}><button className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-rose-700 hover:bg-rose-50" role="menuitem"><LogOut className="h-4 w-4" />Sign out</button></form>
+              </div>}
             </div>
           </div>
         </aside>
 
         <section className="min-w-0 flex-1">
           <header className="flex h-16 items-center border-b border-slate-200 bg-white px-4 sm:px-6">
-            <button className="mr-3 grid h-8 w-8 place-items-center rounded-md border border-slate-200 text-slate-600 lg:hidden">
+            <button onClick={() => setWorkspaceMenuOpen((current) => !current)} aria-label="Open workspace menu" className="mr-3 grid h-8 w-8 place-items-center rounded-md border border-slate-200 text-slate-600 lg:hidden">
               <Command className="h-4 w-4" />
             </button>
             <div className="relative hidden max-w-md flex-1 md:block">
@@ -314,7 +335,7 @@ export function LumethaWorkspace() {
                 </div>
               </div>
               <div className="flex items-center">
-                <button onClick={() => alert("Team invites will be available once authentication is connected.")} className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
+                <button onClick={() => setSettingsOpen(true)} className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
                   <Users className="h-3.5 w-3.5" />
                   Invite
                 </button>
@@ -335,12 +356,12 @@ export function LumethaWorkspace() {
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3 py-5">
               <div className="flex flex-wrap items-center gap-2">
-                <button className="inline-flex h-8 items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600">
+                <button onClick={() => { setStatusFilter("all"); setFiltersOpen((current) => !current); }} className="inline-flex h-8 items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600">
                   <ListFilter className="h-3.5 w-3.5" />
                   All issues
                   <ChevronDown className="h-3.5 w-3.5" />
                 </button>
-                <button className="inline-flex h-8 items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600">
+                <button onClick={() => setFiltersOpen((current) => !current)} className="inline-flex h-8 items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600">
                   <Filter className="h-3.5 w-3.5" />
                   Filter
                 </button>
@@ -354,6 +375,7 @@ export function LumethaWorkspace() {
                   </button>
                 ))}
               </div>
+              {filtersOpen && <div className="mt-2 flex w-full flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-2"><span className="px-1 text-xs font-medium text-slate-500">Status:</span>{([{ id: "all", name: "Any status" }, ...columns] as { id: StatusFilter; name: string }[]).map((item) => <button key={item.id} onClick={() => setStatusFilter(item.id)} className={`rounded px-2 py-1 text-xs ${statusFilter === item.id ? "bg-[#e9edf8] text-[#293a69]" : "text-slate-600 hover:bg-slate-100"}`}>{item.name}</button>)}</div>}
               <div className="flex items-center gap-3 text-xs text-slate-500">
                 <span>{visibleIssues.length} issues</span>
                 <button className="inline-flex items-center gap-1 hover:text-slate-900">
@@ -375,9 +397,7 @@ export function LumethaWorkspace() {
               {!hydrated ? <div className="grid min-h-[530px] place-items-center rounded-lg border border-slate-200 bg-white text-sm text-slate-500">Loading workspace…</div> : !issues.length ? <div className="mb-4 rounded-lg border border-dashed border-[#b9c3dc] bg-[#f6f7fc] p-8 text-center"><FolderKanban className="mx-auto h-6 w-6 text-[#563b96]"/><h2 className="mt-3 text-base font-semibold">Your board is ready</h2><p className="mx-auto mt-1 max-w-md text-sm text-slate-500">There are no sample issues here. Create your first issue to start planning real work.</p><button onClick={() => setComposerOpen(true)} className="mt-4 inline-flex h-9 items-center gap-2 rounded-md bg-[#26365f] px-3 text-sm font-medium text-white"><Plus className="h-4 w-4"/>Create your first issue</button></div> : null}
               <div className="grid min-h-[530px] grid-cols-1 gap-4 xl:grid-cols-4">
                 {columns.map((column) => {
-                  const columnIssues = visibleIssues.filter(
-                    (issue) => issue.status === column.id,
-                  );
+                  const columnIssues = visibleIssues.filter((issue) => issue.status === column.id && (statusFilter === "all" || issue.status === statusFilter));
                   return (
                     <div
                       key={column.id}
@@ -497,8 +517,24 @@ export function LumethaWorkspace() {
           onUpdate={updateIssue}
         />
       )}
+      {settingsOpen && <WorkspaceSettings companyId={companyId} companyName={companyName} companyDomain={companyDomain} onClose={() => setSettingsOpen(false)} />}
     </main>
   );
+}
+
+function WorkspaceSettings({ companyId, companyName, companyDomain, onClose }: { companyId?: string; companyName?: string; companyDomain?: string | null; onClose: () => void }) {
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("member");
+  const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
+  const inviteMember = async (event: React.FormEvent<HTMLFormElement>) => { event.preventDefault(); if (!companyId) return; setSaving(true); setMessage(""); const response = await fetch(`/api/companies/${companyId}/members`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, role }) }); const body = await response.json() as { error?: string }; setSaving(false); if (!response.ok) { setMessage(body.error ?? "Unable to add member."); return; } setEmail(""); setMessage("Member access updated."); };
+  return <div className="fixed inset-0 z-40 grid place-items-center bg-slate-950/25 p-4" onMouseDown={onClose}>
+    <section className="w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl" onMouseDown={(event) => event.stopPropagation()} aria-modal="true" role="dialog" aria-labelledby="settings-title">
+      <div className="flex items-start justify-between"><div><h2 id="settings-title" className="text-lg font-semibold">Company settings</h2><p className="mt-1 text-sm text-slate-500">Access and workspace controls for your team.</p></div><button onClick={onClose} aria-label="Close settings" className="rounded-md p-2 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button></div>
+      <div className="mt-6 space-y-4"><div className="rounded-lg border border-slate-200 p-4"><div className="flex items-center gap-2 font-medium"><ShieldCheck className="h-4 w-4 text-[#563b96]" />{companyName ?? "Your company"}</div><p className="mt-2 text-sm text-slate-500">Company administrators can manage projects, boards, sprints, and member access.</p></div><div className="rounded-lg bg-slate-50 p-4"><p className="text-sm font-medium">Email access policy</p><p className="mt-1 text-sm text-slate-500">{companyDomain ? `Only @${companyDomain} accounts can be added to this company.` : "No email domain restriction is set."}</p></div>{companyId && <form onSubmit={inviteMember} className="rounded-lg border border-slate-200 p-4"><p className="text-sm font-medium">Add or update a member</p><div className="mt-3 flex flex-col gap-2 sm:flex-row"><input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@company.com" className="h-9 min-w-0 flex-1 rounded-md border border-slate-300 px-3 text-sm" /><select value={role} onChange={(event) => setRole(event.target.value)} className="h-9 rounded-md border border-slate-300 px-2 text-sm"><option value="member">Member</option><option value="viewer">Viewer</option><option value="company_admin">Company admin</option></select><button disabled={saving} className="h-9 rounded-md bg-[#26365f] px-3 text-sm font-medium text-white disabled:opacity-60">{saving ? "Saving…" : "Add"}</button></div>{message && <p className="mt-2 text-xs text-slate-600" role="status">{message}</p>}<p className="mt-2 text-xs text-slate-500">The person must create an account first.</p></form>}</div>
+      <button onClick={onClose} className="mt-6 rounded-md bg-[#26365f] px-4 py-2 text-sm font-medium text-white">Done</button>
+    </section>
+  </div>;
 }
 
 function NavItem({
@@ -694,7 +730,7 @@ function ReportsView({ issues }: { issues: Issue[] }) {
   const total = issues.length || 1;
   const done = issues.filter((issue) => issue.status === "done").length;
   const inFlight = issues.filter(
-    (issue) => issue.status === "progress" || issue.status === "review",
+    (issue) => issue.status === "progress" || issue.status === "pm_review" || issue.status === "testing",
   ).length;
   return (
     <div className="grid gap-4 md:grid-cols-3">

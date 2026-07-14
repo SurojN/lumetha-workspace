@@ -55,9 +55,39 @@ model User {
   assignedTasks Task[] @relation("assignee")
   comments Comment[]
   activities Activity[]
+  companyMemberships CompanyMember[]
+  ownedCompanies Company[] @relation("companyOwner")
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ===== COMPANIES & ACCESS =====
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  ownerId     String
+  owner       User     @relation("companyOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  emailDomain String?
+  members     CompanyMember[]
+  projects    Project[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CompanyMember {
+  id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("member") // company_admin, member, viewer
+  createdAt DateTime @default(now())
+
+  @@unique([companyId, userId])
+  @@index([userId])
 }
 
 // ===== PROJECTS =====
@@ -68,6 +98,8 @@ model Project {
   description String?
   ownerId     String
   owner       User     @relation("owner", fields: [ownerId], references: [id], onDelete: Cascade)
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   
   icon        String?
   category    String?
@@ -81,6 +113,8 @@ model Project {
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([companyId])
 }
 
 model ProjectMember {

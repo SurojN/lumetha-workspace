@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { isCompanyAdmin, requireCompanyMembership } from "@/lib/auth";
 
 interface RouteContext {
   params: Promise<{
@@ -10,6 +11,9 @@ interface RouteContext {
 export async function GET(_req: NextRequest, { params }: RouteContext) {
   try {
     const { id: projectId } = await params;
+    const project = await prisma.project.findUnique({ where: { id: projectId }, select: { companyId: true } });
+    if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    await requireCompanyMembership(project.companyId);
 
     const sprints = await prisma.sprint.findMany({
       where: { projectId },
@@ -33,6 +37,10 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   try {
     const { id: projectId } = await params;
     const { name, goal } = await req.json();
+    const project = await prisma.project.findUnique({ where: { id: projectId }, select: { companyId: true } });
+    if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    const { membership } = await requireCompanyMembership(project.companyId);
+    if (!isCompanyAdmin(membership.role)) return NextResponse.json({ error: "Only company admins can create sprints" }, { status: 403 });
 
     const sprint = await prisma.sprint.create({
       data: {

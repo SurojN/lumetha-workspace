@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { isCompanyAdmin, requireCompanyMembership } from "@/lib/auth";
 
 interface RouteContext {
   params: Promise<{
@@ -10,6 +11,9 @@ interface RouteContext {
 export async function GET(_req: NextRequest, { params }: RouteContext) {
   try {
     const { id: projectId } = await params;
+    const project = await prisma.project.findUnique({ where: { id: projectId }, select: { companyId: true } });
+    if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    await requireCompanyMembership(project.companyId);
 
     const boards = await prisma.board.findMany({
       where: { projectId },
@@ -33,6 +37,10 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   try {
     const { id: projectId } = await params;
     const { name, type } = await req.json();
+    const project = await prisma.project.findUnique({ where: { id: projectId }, select: { companyId: true } });
+    if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    const { membership } = await requireCompanyMembership(project.companyId);
+    if (!isCompanyAdmin(membership.role)) return NextResponse.json({ error: "Only company admins can create boards" }, { status: 403 });
 
     const board = await prisma.board.create({
       data: {
@@ -43,8 +51,9 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
           create: [
             { name: "To Do", order: 0 },
             { name: "In Progress", order: 1 },
-            { name: "In Review", order: 2 },
-            { name: "Done", order: 3 },
+            { name: "PM Review", order: 2 },
+            { name: "Testing", order: 3 },
+            { name: "Done", order: 4 },
           ],
         },
       },

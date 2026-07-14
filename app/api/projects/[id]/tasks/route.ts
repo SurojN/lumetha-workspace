@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { requireCompanyMembership } from "@/lib/auth";
 
 interface RouteContext {
   params: Promise<{
@@ -10,6 +11,9 @@ interface RouteContext {
 export async function GET(_req: NextRequest, { params }: RouteContext) {
   try {
     const { id } = await params;
+    const project = await prisma.project.findUnique({ where: { id }, select: { companyId: true } });
+    if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    await requireCompanyMembership(project.companyId);
 
     const tasks = await prisma.task.findMany({
       where: { projectId: id },
@@ -39,7 +43,11 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   try {
     const { id } = await params;
     const body = await req.json();
-    const { title, key, description, creatorId, ...rest } = body;
+    const { title, key, description, assigneeId, type, priority, storyPoints, dueDate, boardColumnId, sprintId } = body;
+    const project = await prisma.project.findUnique({ where: { id }, select: { companyId: true } });
+    if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    const { user } = await requireCompanyMembership(project.companyId);
+    if (!title || !key) return NextResponse.json({ error: "title and key are required" }, { status: 400 });
 
     const task = await prisma.task.create({
       data: {
@@ -47,8 +55,14 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
         key,
         description,
         projectId: id,
-        creatorId,
-        ...rest,
+        creatorId: user.id,
+        assigneeId,
+        type,
+        priority,
+        storyPoints,
+        dueDate: dueDate ? new Date(dueDate) : undefined,
+        boardColumnId,
+        sprintId,
       },
       include: {
         creator: true,
