@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-interface Params {
+interface RouteContext {
   params: Promise<{
     id: string;
   }>;
 }
 
-export async function GET({ params }: Params) {
+export async function GET(_req: NextRequest, { params }: RouteContext) {
   try {
     const { id } = await params;
+
     const tasks = await prisma.task.findMany({
       where: { projectId: id },
       include: {
@@ -26,6 +27,7 @@ export async function GET({ params }: Params) {
     return NextResponse.json(tasks);
   } catch (error) {
     console.error("Failed to fetch tasks", error);
+
     return NextResponse.json(
       { error: "Failed to fetch tasks" },
       { status: 500 },
@@ -33,7 +35,7 @@ export async function GET({ params }: Params) {
   }
 }
 
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, { params }: RouteContext) {
   try {
     const { id } = await params;
     const body = await req.json();
@@ -57,6 +59,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json(task, { status: 201 });
   } catch (error) {
     console.error("Failed to create task", error);
+
     return NextResponse.json(
       { error: "Failed to create task" },
       { status: 500 },

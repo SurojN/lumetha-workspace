@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-interface Params {
+interface RouteContext {
   params: Promise<{
     id: string;
   }>;
 }
 
-export async function GET({ params }: Params) {
+export async function GET(_req: NextRequest, { params }: RouteContext) {
   try {
     const { id: projectId } = await params;
+
     const sprints = await prisma.sprint.findMany({
       where: { projectId },
       include: {
@@ -28,11 +29,10 @@ export async function GET({ params }: Params) {
   }
 }
 
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, { params }: RouteContext) {
   try {
     const { id: projectId } = await params;
-    const body = await req.json();
-    const { name, goal } = body;
+    const { name, goal } = await req.json();
 
     const sprint = await prisma.sprint.create({
       data: {
