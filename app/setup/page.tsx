@@ -93,7 +93,7 @@ export default function SetupPage() {
                 file:
               </p>
               <code className="block bg-slate-100 dark:bg-slate-800 p-3 rounded text-sm text-slate-900 dark:text-slate-100 whitespace-pre">
-                {`DATABASE_URL="postgresql://user:password@localhost:5432/lumetha"
+                {`DATABASE_URL="postgres://ac11752322ff7289befe9d194d402c2c6572c600ff0006a6b73a926b18a7f38e:sk_8c2K4MktJO-2B9HvoPnwT@db.prisma.io:5432/postgres?sslmode=require"
 NEXTAUTH_SECRET="your-secret-key-here"
 NEXTAUTH_URL="http://localhost:3000"`}
               </code>
