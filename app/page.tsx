@@ -8,5 +8,6 @@ export default async function Home() {
     where: { userId: user.id },
     include: { company: true },
   });
-  return <LumethaWorkspace userName={user.name ?? user.email ?? "Workspace admin"} companyId={membership?.company.id} companyName={membership?.company.name} companyDomain={membership?.company.emailDomain} />;
+  const canReview = user.role === "senior_engineer" || user.role === "admin" || membership?.role === "company_admin";
+  return <LumethaWorkspace userName={user.name ?? user.email ?? "Workspace admin"} companyId={membership?.company.id} companyName={membership?.company.name} companyDomain={membership?.company.emailDomain} canReview={canReview} />;
 }

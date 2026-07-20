@@ -64,7 +64,7 @@ export interface Sprint {
 
 // Task Types
 export type TaskType = "task" | "bug" | "feature" | "improvement";
-export type TaskStatus = "todo" | "in_progress" | "in_review" | "done";
+export type TaskStatus = "dusk_intake" | "in_progress" | "pending_senior_review" | "dawn_shipped";
 export type TaskPriority = "low" | "medium" | "high" | "critical";
 
 export interface Task {
@@ -73,6 +73,9 @@ export interface Task {
   key: string;
   title: string;
   description: string | null;
+  rawBrief: string;
+  aiParsedChecklist: AiChecklistItem[] | null;
+  technicalSummary: string | null;
   type: TaskType;
   status: TaskStatus;
   priority: TaskPriority;
@@ -80,11 +83,30 @@ export interface Task {
   sprintId: string | null;
   creatorId: string;
   assigneeId: string | null;
+  reviewerId: string | null;
+  reviewChecklist: ReviewChecklist | null;
+  reviewedAt: Date | null;
+  deploymentUrl: string | null;
+  repositoryUrl: string | null;
+  cycleId: string | null;
   storyPoints: number | null;
   dueDate: Date | null;
   order: number | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface AiChecklistItem {
+  title: string;
+  description: string;
+  technical_requirements: string;
+  testing_criteria: string;
+}
+
+export interface ReviewChecklist {
+  acceptanceCriteria: boolean;
+  testsPassing: boolean;
+  securityReviewed: boolean;
 }
 
 export interface TaskWithRelations extends Task {

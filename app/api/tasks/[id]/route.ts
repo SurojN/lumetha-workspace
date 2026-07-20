@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser, requireCompanyMembership } from "@/lib/auth";
+import { canTransition, taskUpdateSchema, type DaybreakStatus } from "@/lib/daybreak";
+import { Prisma } from "@prisma/client";
 
 interface RouteContext {
   params: Promise<{
@@ -49,14 +51,37 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
   try {
     const { id } = await params;
-    const body = await req.json();
+    const parsed = taskUpdateSchema.safeParse(await req.json());
+    if (!parsed.success) return NextResponse.json({ error: "Invalid task update", details: parsed.error.flatten() }, { status: 400 });
+    const body = parsed.data;
     const existing = await prisma.task.findUnique({ where: { id }, include: { project: { select: { companyId: true } } } });
     if (!existing) return NextResponse.json({ error: "Task not found" }, { status: 404 });
-    await requireCompanyMembership(existing.project.companyId);
+    const { user, membership } = await requireCompanyMembership(existing.project.companyId);
+
+    if (body.status && !canTransition(existing.status as DaybreakStatus, body.status)) {
+      return NextResponse.json({ error: `Invalid lifecycle transition: ${existing.status} → ${body.status}` }, { status: 409 });
+    }
+
+    if (body.status === "dawn_shipped") {
+      const isSenior = user.role === "senior_engineer" || user.role === "admin" || membership.role === "company_admin";
+      if (!isSenior) return NextResponse.json({ error: "Only a senior reviewer can ship work" }, { status: 403 });
+      const checklist = body.reviewChecklist;
+      const summary = body.technicalSummary ?? existing.technicalSummary;
+      const repositoryUrl = body.repositoryUrl ?? existing.repositoryUrl;
+      const deploymentUrl = body.deploymentUrl ?? existing.deploymentUrl;
+      if (!checklist || !Object.values(checklist).every(Boolean) || !summary || (!repositoryUrl && !deploymentUrl)) {
+        return NextResponse.json({ error: "Shipping requires a completed review checklist, technical summary, and delivery link" }, { status: 422 });
+      }
+    }
 
     const task = await prisma.task.update({
       where: { id },
-      data: { title: body.title, description: body.description, status: body.status, priority: body.priority, assigneeId: body.assigneeId, boardColumnId: body.boardColumnId, sprintId: body.sprintId, storyPoints: body.storyPoints, dueDate: body.dueDate ? new Date(body.dueDate) : undefined, order: body.order },
+      data: {
+        ...body,
+        reviewChecklist: body.reviewChecklist as Prisma.InputJsonValue | undefined,
+        reviewerId: body.status === "dawn_shipped" ? user.id : body.reviewerId,
+        reviewedAt: body.status === "dawn_shipped" ? new Date() : undefined,
+      },
       include: {
         creator: true,
         assignee: true,
@@ -65,6 +90,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 
     return NextResponse.json(task);
   } catch (error) {
+    if (error instanceof Error && error.message === "FORBIDDEN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     console.error("Failed to update task", error);
 
     return NextResponse.json(

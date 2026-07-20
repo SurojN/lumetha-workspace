@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireCompanyMembership } from "@/lib/auth";
+import { z } from "zod";
+
+const createTaskSchema = z.object({
+  title: z.string().trim().min(1).max(160),
+  key: z.string().trim().min(1).max(32),
+  rawBrief: z.string().trim().min(1).max(50_000),
+  description: z.string().max(20_000).optional(),
+  priority: z.enum(["low", "medium", "high", "critical"]).default("medium"),
+  assigneeId: z.string().optional(),
+  type: z.enum(["task", "bug", "feature", "improvement"]).default("task"),
+  cycleId: z.string().optional(),
+});
 
 interface RouteContext {
   params: Promise<{
@@ -42,27 +54,30 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
 export async function POST(req: NextRequest, { params }: RouteContext) {
   try {
     const { id } = await params;
-    const body = await req.json();
-    const { title, key, description, assigneeId, type, priority, storyPoints, dueDate, boardColumnId, sprintId } = body;
+    const parsed = createTaskSchema.safeParse(await req.json());
+    if (!parsed.success) return NextResponse.json({ error: "A title and raw brief are required", details: parsed.error.flatten() }, { status: 400 });
+    const { title, key, rawBrief, description, assigneeId, type, priority, cycleId } = parsed.data;
     const project = await prisma.project.findUnique({ where: { id }, select: { companyId: true } });
     if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
     const { user } = await requireCompanyMembership(project.companyId);
-    if (!title || !key) return NextResponse.json({ error: "title and key are required" }, { status: 400 });
+    if (cycleId) {
+      const cycle = await prisma.deliveryCycle.findFirst({ where: { id: cycleId, isActive: true } });
+      if (!cycle) return NextResponse.json({ error: "Delivery cycle is not active" }, { status: 409 });
+    }
 
     const task = await prisma.task.create({
       data: {
         title,
         key,
         description,
+        rawBrief,
         projectId: id,
         creatorId: user.id,
         assigneeId,
         type,
         priority,
-        storyPoints,
-        dueDate: dueDate ? new Date(dueDate) : undefined,
-        boardColumnId,
-        sprintId,
+        cycleId,
+        status: "dusk_intake",
       },
       include: {
         creator: true,

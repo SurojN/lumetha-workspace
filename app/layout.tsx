@@ -3,8 +3,8 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
-  title: "Lumetha — Work management for ambitious teams",
-  description: "Plan, prioritize, and ship together with Lumetha.",
+  title: "Lumetha Daybreak — Overnight delivery workspace",
+  description: "From dusk intake to senior-reviewed dawn delivery.",
 };
 
 export default function RootLayout({
