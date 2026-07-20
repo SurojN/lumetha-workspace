@@ -12,6 +12,7 @@ const companySchema = z.object({
 
 export async function createCompany(formData: FormData) {
   const user = await requireUser();
+  if (user.role !== "admin") redirect("/access-pending");
   const parsed = companySchema.safeParse({ name: formData.get("name"), emailDomain: formData.get("emailDomain") });
   if (!parsed.success) redirect("/onboarding/company?error=invalid");
   const baseSlug = parsed.data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "company";

@@ -11,6 +11,7 @@ datasource db {
 }
 
 enum UserRole {
+  pending
   client
   developer
   qa
@@ -61,7 +62,7 @@ model User {
   emailVerified DateTime?
   password      String?
   image         String?
-  role          UserRole  @default(developer)
+  role          UserRole  @default(pending)
 
   accounts             Account[]             @relation("accounts")
   sessions             Session[]

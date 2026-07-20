@@ -20,10 +20,10 @@ export async function register(_: AuthState, formData: FormData): Promise<AuthSt
   const exists = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   if (exists) return { error: "An account already exists for that email." };
   const user = await prisma.user.create({
-    data: { name, email: parsed.data.email, password: await bcrypt.hash(parsed.data.password, 12) },
+    data: { name, email: parsed.data.email, password: await bcrypt.hash(parsed.data.password, 12), role: "pending" },
   });
   await createSession(user.id);
-  redirect("/onboarding/company");
+  redirect("/access-pending");
 }
 
 export async function login(_: AuthState, formData: FormData): Promise<AuthState> {
@@ -35,7 +35,7 @@ export async function login(_: AuthState, formData: FormData): Promise<AuthState
   }
   await createSession(user.id);
   const membership = await prisma.companyMember.findFirst({ where: { userId: user.id } });
-  redirect(membership ? "/" : "/onboarding/company");
+  redirect(user.role === "pending" || !membership ? "/access-pending" : "/");
 }
 
 export async function logout() {
