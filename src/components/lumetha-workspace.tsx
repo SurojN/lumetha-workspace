@@ -2,39 +2,195 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowRight, Bell, Check, CheckCircle2, ChevronDown, CircleDot, Clock3,
-  ClipboardCheck, CloudMoon, Code2, ExternalLink, FileText, GitBranch,
-  LayoutGrid, Link2, LogOut, Menu, MoonStar, Paperclip, Plus, Search,
-  Send, ShieldCheck, Sparkles, Sun, Sunrise, Users, X,
+  ArrowRight,
+  Bell,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  CircleDot,
+  Clock3,
+  ClipboardCheck,
+  CloudMoon,
+  Code2,
+  ExternalLink,
+  FileText,
+  GitBranch,
+  LayoutGrid,
+  Link2,
+  LogOut,
+  Menu,
+  MoonStar,
+  Paperclip,
+  Plus,
+  Search,
+  Send,
+  ShieldCheck,
+  Sparkles,
+  Sun,
+  Sunrise,
+  Users,
+  X,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import type { DaybreakStatus } from "@/lib/daybreak";
 
-type Checklist = { acceptanceCriteria: boolean; testsPassing: boolean; securityReviewed: boolean };
+type Checklist = {
+  acceptanceCriteria: boolean;
+  testsPassing: boolean;
+  securityReviewed: boolean;
+};
 type WorkItem = {
-  id: string; key: string; title: string; brief: string; status: DaybreakStatus;
-  priority: "Urgent" | "High" | "Normal"; tags: string[]; assignee?: string;
-  attachments: string[]; checklist: { title: string; done: boolean }[];
-  summary?: string; repositoryUrl?: string; deploymentUrl?: string; review?: Checklist;
+  id: string;
+  key: string;
+  title: string;
+  brief: string;
+  status: DaybreakStatus;
+  priority: "Urgent" | "High" | "Normal";
+  tags: string[];
+  assignee?: string;
+  attachments: string[];
+  checklist: { title: string; done: boolean }[];
+  summary?: string;
+  repositoryUrl?: string;
+  deploymentUrl?: string;
+  review?: Checklist;
 };
 
-const stages: { id: DaybreakStatus; label: string; hint: string; icon: typeof MoonStar; color: string; wash: string }[] = [
-  { id: "dusk_intake", label: "Dusk intake", hint: "Client briefs", icon: MoonStar, color: "text-violet-700", wash: "bg-violet-50" },
-  { id: "in_progress", label: "In progress", hint: "Building overnight", icon: Code2, color: "text-blue-700", wash: "bg-blue-50" },
-  { id: "pending_senior_review", label: "Senior review", hint: "Human validation", icon: ShieldCheck, color: "text-amber-700", wash: "bg-amber-50" },
-  { id: "dawn_shipped", label: "Dawn shipped", hint: "Ready by morning", icon: Sunrise, color: "text-emerald-700", wash: "bg-emerald-50" },
+const stages: {
+  id: DaybreakStatus;
+  label: string;
+  hint: string;
+  icon: typeof MoonStar;
+  color: string;
+  wash: string;
+}[] = [
+  {
+    id: "dusk_intake",
+    label: "Dusk intake",
+    hint: "Client briefs",
+    icon: MoonStar,
+    color: "text-violet-700",
+    wash: "bg-violet-50",
+  },
+  {
+    id: "in_progress",
+    label: "In progress",
+    hint: "Building overnight",
+    icon: Code2,
+    color: "text-blue-700",
+    wash: "bg-blue-50",
+  },
+  {
+    id: "pending_senior_review",
+    label: "Senior review",
+    hint: "Human validation",
+    icon: ShieldCheck,
+    color: "text-amber-700",
+    wash: "bg-amber-50",
+  },
+  {
+    id: "dawn_shipped",
+    label: "Dawn shipped",
+    hint: "Ready by morning",
+    icon: Sunrise,
+    color: "text-emerald-700",
+    wash: "bg-emerald-50",
+  },
 ];
 
 const seed: WorkItem[] = [
-  { id: "1", key: "DAY-024", title: "Add usage analytics dashboard", brief: "Give workspace admins a clear weekly view of active users and projects.", status: "in_progress", priority: "High", tags: ["Frontend", "Analytics"], assignee: "AK", attachments: ["analytics-wireframe.fig"], checklist: [{ title: "Build metric cards and trend chart", done: true }, { title: "Connect weekly aggregation endpoint", done: false }, { title: "Add empty and loading states", done: false }] },
-  { id: "2", key: "DAY-023", title: "Improve team invitation flow", brief: "Let admins resend invitations and make expired invite states obvious.", status: "pending_senior_review", priority: "Normal", tags: ["Full stack"], assignee: "NR", attachments: [], checklist: [{ title: "Validate invite tokens", done: true }, { title: "Add resend action", done: true }, { title: "Cover expiry edge cases", done: true }], summary: "Added expiry-aware invitation states, a rate-limited resend action, and regression coverage.", repositoryUrl: "https://github.com/lumetha/workspace/pull/23", deploymentUrl: "https://day-023.lumetha.dev", review: { acceptanceCriteria: false, testsPassing: false, securityReviewed: false } },
-  { id: "3", key: "DAY-021", title: "Ship billing settings refresh", brief: "Simplify plan details and invoice access.", status: "dawn_shipped", priority: "Normal", tags: ["Frontend"], assignee: "SM", attachments: [], checklist: [{ title: "Refresh settings UI", done: true }], summary: "Refreshed billing settings and verified invoice downloads.", deploymentUrl: "https://day-021.lumetha.dev", review: { acceptanceCriteria: true, testsPassing: true, securityReviewed: true } },
+  {
+    id: "1",
+    key: "DAY-024",
+    title: "Add usage analytics dashboard",
+    brief:
+      "Give workspace admins a clear weekly view of active users and projects.",
+    status: "in_progress",
+    priority: "High",
+    tags: ["Frontend", "Analytics"],
+    assignee: "AK",
+    attachments: ["analytics-wireframe.fig"],
+    checklist: [
+      { title: "Build metric cards and trend chart", done: true },
+      { title: "Connect weekly aggregation endpoint", done: false },
+      { title: "Add empty and loading states", done: false },
+    ],
+  },
+  {
+    id: "2",
+    key: "DAY-023",
+    title: "Improve team invitation flow",
+    brief:
+      "Let admins resend invitations and make expired invite states obvious.",
+    status: "pending_senior_review",
+    priority: "Normal",
+    tags: ["Full stack"],
+    assignee: "NR",
+    attachments: [],
+    checklist: [
+      { title: "Validate invite tokens", done: true },
+      { title: "Add resend action", done: true },
+      { title: "Cover expiry edge cases", done: true },
+    ],
+    summary:
+      "Added expiry-aware invitation states, a rate-limited resend action, and regression coverage.",
+    repositoryUrl: "https://github.com/lumetha/workspace/pull/23",
+    deploymentUrl: "https://day-023.lumetha.dev",
+    review: {
+      acceptanceCriteria: false,
+      testsPassing: false,
+      securityReviewed: false,
+    },
+  },
+  {
+    id: "3",
+    key: "DAY-021",
+    title: "Ship billing settings refresh",
+    brief: "Simplify plan details and invoice access.",
+    status: "dawn_shipped",
+    priority: "Normal",
+    tags: ["Frontend"],
+    assignee: "SM",
+    attachments: [],
+    checklist: [{ title: "Refresh settings UI", done: true }],
+    summary: "Refreshed billing settings and verified invoice downloads.",
+    deploymentUrl: "https://day-021.lumetha.dev",
+    review: {
+      acceptanceCriteria: true,
+      testsPassing: true,
+      securityReviewed: true,
+    },
+  },
 ];
 
 const storageKey = "lumetha-daybreak-v2";
-const nextStatus: Partial<Record<DaybreakStatus, DaybreakStatus>> = { dusk_intake: "in_progress", in_progress: "pending_senior_review" };
+const nextStatus: Partial<Record<DaybreakStatus, DaybreakStatus>> = {
+  dusk_intake: "in_progress",
+  in_progress: "pending_senior_review",
+};
 
-export function LumethaWorkspace({ userName, companyId, projectId, companyName, canReview = false, role = "developer" }: { userName: string; companyId?: string; projectId?: string; companyName?: string; companyDomain?: string | null; canReview?: boolean; role?: "client" | "developer" | "qa" | "project_manager" | "senior_engineer" | "admin" }) {
+export function LumethaWorkspace({
+  userName,
+  companyId,
+  projectId,
+  companyName,
+  canReview = false,
+  role = "developer",
+}: {
+  userName: string;
+  companyId?: string;
+  projectId?: string;
+  companyName?: string;
+  companyDomain?: string | null;
+  canReview?: boolean;
+  role?:
+    | "client"
+    | "developer"
+    | "qa"
+    | "project_manager"
+    | "senior_engineer"
+    | "admin";
+}) {
   const [items, setItems] = useState<WorkItem[]>(seed);
   const [hydrated, setHydrated] = useState(false);
   const [query, setQuery] = useState("");
@@ -45,153 +201,1347 @@ export function LumethaWorkspace({ userName, companyId, projectId, companyName, 
 
   useEffect(() => {
     let savedItems: WorkItem[] | undefined;
-    try { const saved = localStorage.getItem(storageKey); if (saved) savedItems = JSON.parse(saved) as WorkItem[]; } catch { localStorage.removeItem(storageKey); }
-    const frame = requestAnimationFrame(() => { if (savedItems) setItems(savedItems); setHydrated(true); });
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) savedItems = JSON.parse(saved) as WorkItem[];
+    } catch {
+      localStorage.removeItem(storageKey);
+    }
+    const frame = requestAnimationFrame(() => {
+      if (savedItems) setItems(savedItems);
+      setHydrated(true);
+    });
     return () => cancelAnimationFrame(frame);
   }, []);
-  useEffect(() => { if (hydrated) localStorage.setItem(storageKey, JSON.stringify(items)); }, [hydrated, items]);
+  useEffect(() => {
+    if (hydrated) localStorage.setItem(storageKey, JSON.stringify(items));
+  }, [hydrated, items]);
 
-  const visible = useMemo(() => items.filter((item) => `${item.key} ${item.title} ${item.brief} ${item.tags.join(" ")}`.toLowerCase().includes(query.toLowerCase())), [items, query]);
+  const visible = useMemo(
+    () =>
+      items.filter((item) =>
+        `${item.key} ${item.title} ${item.brief} ${item.tags.join(" ")}`
+          .toLowerCase()
+          .includes(query.toLowerCase()),
+      ),
+    [items, query],
+  );
   const update = (id: string, patch: Partial<WorkItem>) => {
-    setItems((current) => current.map((item) => item.id === id ? { ...item, ...patch } : item));
-    setSelected((current) => current?.id === id ? { ...current, ...patch } : current);
+    setItems((current) =>
+      current.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+    );
+    setSelected((current) =>
+      current?.id === id ? { ...current, ...patch } : current,
+    );
   };
   const advance = (item: WorkItem) => {
     const target = nextStatus[item.status];
     if (target) update(item.id, { status: target });
   };
-  const add = (title: string, brief: string, priority: WorkItem["priority"], attachments: string[]) => {
-    const number = Math.max(24, ...items.map((item) => Number(item.key.split("-")[1]) || 0)) + 1;
-    setItems((current) => [{ id: crypto.randomUUID(), key: `DAY-${String(number).padStart(3, "0")}`, title, brief, status: "dusk_intake", priority, tags: ["New brief"], attachments, checklist: [] }, ...current]);
+  const add = (
+    title: string,
+    brief: string,
+    priority: WorkItem["priority"],
+    attachments: string[],
+  ) => {
+    const number =
+      Math.max(
+        24,
+        ...items.map((item) => Number(item.key.split("-")[1]) || 0),
+      ) + 1;
+    setItems((current) => [
+      {
+        id: crypto.randomUUID(),
+        key: `DAY-${String(number).padStart(3, "0")}`,
+        title,
+        brief,
+        status: "dusk_intake",
+        priority,
+        tags: ["New brief"],
+        attachments,
+        checklist: [],
+      },
+      ...current,
+    ]);
     setComposer(false);
   };
-  const initials = userName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+  const initials = userName
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
-  if (role === "client") return <ClientPortal userName={userName} companyId={companyId} projectId={projectId} companyName={companyName} />;
-  if (role === "admin") return <AdminPortal userName={userName} companyId={companyId} companyName={companyName} />;
+  if (role === "client")
+    return (
+      <ClientPortal
+        userName={userName}
+        companyId={companyId}
+        projectId={projectId}
+        companyName={companyName}
+      />
+    );
+  if (role === "admin")
+    return (
+      <AdminPortal
+        userName={userName}
+        companyId={companyId}
+        companyName={companyName}
+      />
+    );
 
-  return <main className="min-h-screen bg-[#f7f8f6] text-[#17221d]">
-    <div className="flex min-h-screen">
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col overflow-hidden border-r border-emerald-700 bg-emerald-600 text-white lg:flex">
-        <div className="flex h-[72px] items-center gap-3 border-b border-white/15 px-5">
-          <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/15 text-white"><Sunrise className="h-5 w-5" /></div>
-          <div><p className="font-semibold tracking-tight">Lumetha</p><p className="text-[11px] text-[#78827c]">Daybreak workspace</p></div>
-        </div>
-        <nav className="min-h-0 flex-1 overflow-hidden p-3">
-          <p className="px-3 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[.14em] text-emerald-50/60">Overnight cycle</p>
-          <SideButton active={view === "board"} icon={LayoutGrid} label="Daybreak board" count={items.filter((i) => i.status !== "dawn_shipped").length} onClick={() => setView("board")} />
-          <SideButton active={view === "shipped"} icon={Sunrise} label="Dawn archive" count={items.filter((i) => i.status === "dawn_shipped").length} onClick={() => setView("shipped")} />
-          {canReview && <SideButton active={false} icon={ClipboardCheck} label="Review queue" count={items.filter((i) => i.status === "pending_senior_review").length} onClick={() => { setView("board"); setQuery(""); }} />}
-        </nav>
-        <div className="shrink-0 border-t border-white/15 bg-emerald-600 p-3">
-          <div className="relative"><button onClick={() => setMenu(!menu)} className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-white/10">
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-[#dce9e1] text-xs font-bold text-[#204733]">{initials}</span>
-            <span className="min-w-0"><span className="block truncate text-sm font-medium">{userName}</span><span className="block text-xs text-emerald-50/65">{canReview ? "Senior reviewer" : "Delivery member"}</span></span><ChevronDown className="ml-auto h-4 w-4 text-emerald-50/60" />
-          </button>{menu && <form action={logout} className="absolute bottom-14 left-0 right-0 rounded-xl border border-[#e1e6e1] bg-white p-1 shadow-lg"><button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-rose-700 hover:bg-rose-50"><LogOut className="h-4 w-4" />Sign out</button></form>}</div>
-        </div>
-      </aside>
-
-      <section className="min-w-0 flex-1">
-        <header className="flex h-[72px] items-center border-b border-[#e1e6e1] bg-white/90 px-4 backdrop-blur sm:px-7">
-          <span className="mr-3 grid h-9 w-9 place-items-center rounded-lg border border-[#e1e6e1] lg:hidden"><Menu className="h-4 w-4" /></span>
-          <div className="relative hidden w-80 md:block"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98a09b]" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search tonight’s work…" className="h-10 w-full rounded-xl border border-[#e3e7e3] bg-[#f8f9f7] pl-9 pr-3 text-sm outline-none focus:border-[#7ca18e] focus:bg-white" /></div>
-          <div className="ml-auto flex items-center gap-2"><span className="relative grid h-10 w-10 place-items-center rounded-xl text-[#647068]"><Bell className="h-[18px] w-[18px]" /><span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-amber-500" /></span>{(role === "qa" || role === "project_manager") && <button onClick={() => setComposer(true)} className="ml-1 inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-emerald-500"><Plus className="h-4 w-4" /><span className="hidden sm:inline">Create task or bug</span></button>}</div>
-        </header>
-
-        <div className="mx-auto max-w-[1680px] p-4 sm:p-7">
-          <div className="overflow-hidden rounded-2xl border border-[#dfe6e0] bg-[linear-gradient(135deg,#eef8f1,#deefe4)] px-5 py-5 text-slate-900 shadow-[0_12px_30px_rgba(22,59,44,.12)] sm:px-7">
-            <div className="flex flex-wrap items-center justify-between gap-5"><div><div className="flex items-center gap-2 text-xs font-medium text-emerald-700"><CloudMoon className="h-4 w-4" />ACTIVE DELIVERY CYCLE <span className="h-1 w-1 rounded-full bg-emerald-300" /> JUL 20 → JUL 21</div><h1 className="mt-2 text-2xl font-semibold tracking-[-.02em] sm:text-[28px]">Good evening, {userName.split(" ")[0]}.</h1><p className="mt-1 text-sm text-slate-600">Drop the brief tonight. Wake up to reviewed, production-ready work.</p></div><div className="flex items-center gap-6 rounded-xl border border-emerald-200 bg-white/70 px-5 py-3"><div><p className="text-[10px] uppercase tracking-widest text-emerald-800/60">Dawn handoff</p><p className="mt-1 font-mono text-lg font-semibold">06:30 NPT</p></div><div className="h-9 w-px bg-emerald-200" /><div><p className="text-[10px] uppercase tracking-widest text-emerald-800/60">Cycle health</p><p className="mt-1 flex items-center gap-2 text-sm font-medium"><span className="h-2 w-2 rounded-full bg-emerald-300" />On track</p></div></div></div>
+  return (
+    <main className="min-h-screen bg-[#f7f8f6] text-[#17221d]">
+      <div className="flex min-h-screen">
+        <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col overflow-hidden border-r border-emerald-700 bg-[#1D4B3B] text-white lg:flex">
+          <div className="flex h-[72px] items-center gap-3 border-b border-white/15 px-5">
+            <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/15 text-white">
+              <Sunrise className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-semibold tracking-tight">Lumetha</p>
+              <p className="text-[11px] text-[#78827c]">Daybreak workspace</p>
+            </div>
           </div>
+          <nav className="min-h-0 flex-1 overflow-hidden p-3">
+            <p className="px-3 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[.14em] text-emerald-50/60">
+              Overnight cycle
+            </p>
+            <SideButton
+              active={view === "board"}
+              icon={LayoutGrid}
+              label="Daybreak board"
+              count={items.filter((i) => i.status !== "dawn_shipped").length}
+              onClick={() => setView("board")}
+            />
+            <SideButton
+              active={view === "shipped"}
+              icon={Sunrise}
+              label="Dawn archive"
+              count={items.filter((i) => i.status === "dawn_shipped").length}
+              onClick={() => setView("shipped")}
+            />
+            {canReview && (
+              <SideButton
+                active={false}
+                icon={ClipboardCheck}
+                label="Review queue"
+                count={
+                  items.filter((i) => i.status === "pending_senior_review")
+                    .length
+                }
+                onClick={() => {
+                  setView("board");
+                  setQuery("");
+                }}
+              />
+            )}
+          </nav>
+          <div className="shrink-0 border-t border-white/15 bg-[#1D4B3B] p-3">
+            <div className="relative">
+              <button
+                onClick={() => setMenu(!menu)}
+                className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-white/10"
+              >
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-[#dce9e1] text-xs font-bold text-[#204733]">
+                  {initials}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium">
+                    {userName}
+                  </span>
+                  <span className="block text-xs text-emerald-50/65">
+                    {canReview ? "Senior reviewer" : "Delivery member"}
+                  </span>
+                </span>
+                <ChevronDown className="ml-auto h-4 w-4 text-emerald-50/60" />
+              </button>
+              {menu && (
+                <form
+                  action={logout}
+                  className="absolute bottom-14 left-0 right-0 rounded-xl border border-[#e1e6e1] bg-white p-1 shadow-lg"
+                >
+                  <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-rose-700 hover:bg-rose-50">
+                    <LogOut className="h-4 w-4" />
+                    Sign out
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </aside>
 
-          <div className="mt-7 flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[.13em] text-[#859088]">{companyName ?? "Your workspace"}</p><h2 className="mt-1 text-xl font-semibold">{view === "board" ? "Tonight’s delivery board" : "Dawn delivery archive"}</h2><p className="mt-1 text-sm text-[#758078]">{view === "board" ? "Every task follows one guarded path from intake to senior approval." : "Reviewed work, previews, and repositories from completed cycles."}</p></div><div className="flex items-center gap-2 rounded-full border border-[#dfe5e0] bg-white px-3 py-2 text-xs text-[#667168]"><CircleDot className="h-3.5 w-3.5 text-emerald-600" />{items.length} deliverables this cycle</div></div>
+        <section className="min-w-0 flex-1">
+          <header className="flex h-[72px] items-center border-b border-[#e1e6e1] bg-white/90 px-4 backdrop-blur sm:px-7">
+            <span className="mr-3 grid h-9 w-9 place-items-center rounded-lg border border-[#e1e6e1] lg:hidden">
+              <Menu className="h-4 w-4" />
+            </span>
+            <div className="relative hidden w-80 md:block">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98a09b]" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search tonight’s work…"
+                className="h-10 w-full rounded-xl border border-[#e3e7e3] bg-[#f8f9f7] pl-9 pr-3 text-sm outline-none focus:border-[#7ca18e] focus:bg-white"
+              />
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              <span className="relative grid h-10 w-10 place-items-center rounded-xl text-[#647068]">
+                <Bell className="h-[18px] w-[18px]" />
+                <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-amber-500" />
+              </span>
+              {(role === "qa" || role === "project_manager") && (
+                <button
+                  onClick={() => setComposer(true)}
+                  className="ml-1 inline-flex h-10 items-center gap-2 rounded-xl bg-[#1D4B3B] px-4 text-sm font-medium text-white shadow-sm hover:bg-emerald-500"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Create task or bug</span>
+                </button>
+              )}
+            </div>
+          </header>
 
-          {view === "board" ? <div className="mt-5 grid gap-4 xl:grid-cols-4">{stages.map((stage, index) => {
-            const columnItems = visible.filter((item) => item.status === stage.id); const Icon = stage.icon;
-            return <section key={stage.id} className="min-h-[490px] rounded-2xl border border-[#e0e5e0] bg-[#f0f3ef] p-3">
-              <div className="flex items-center gap-3 px-1 py-2"><span className={`grid h-8 w-8 place-items-center rounded-lg ${stage.wash} ${stage.color}`}><Icon className="h-4 w-4" /></span><div><h3 className="text-sm font-semibold">{stage.label}</h3><p className="text-[11px] text-[#849087]">{stage.hint}</p></div><span className="ml-auto rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-[#68736b]">{columnItems.length}</span>{index < 3 && <ArrowRight className="hidden h-3.5 w-3.5 text-[#aab2ac] xl:block" />}</div>
-              <div className="mt-2 space-y-3">{columnItems.map((item) => <WorkCard key={item.id} item={item} onOpen={() => setSelected(item)} onAdvance={() => advance(item)} />)}</div>
-              {stage.id === "dusk_intake" && (role === "qa" || role === "project_manager") && <button onClick={() => setComposer(true)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#bec9c1] py-3 text-xs font-medium text-[#627068] hover:border-[#6d927e] hover:bg-white"><Plus className="h-3.5 w-3.5" />Create task or bug</button>}
-            </section>})}</div> : <Archive items={visible.filter((item) => item.status === "dawn_shipped")} />}
+          <div className="mx-auto max-w-[1680px] p-4 sm:p-7">
+            <div className="overflow-hidden rounded-2xl border border-[#dfe6e0] bg-[linear-gradient(135deg,#eef8f1,#deefe4)] px-5 py-5 text-slate-900 shadow-[0_12px_30px_rgba(22,59,44,.12)] sm:px-7">
+              <div className="flex flex-wrap items-center justify-between gap-5">
+                <div>
+                  <div className="flex items-center gap-2 text-xs font-medium text-emerald-700">
+                    <CloudMoon className="h-4 w-4" />
+                    ACTIVE DELIVERY CYCLE{" "}
+                    <span className="h-1 w-1 rounded-full bg-emerald-300" /> JUL
+                    20 → JUL 21
+                  </div>
+                  <h1 className="mt-2 text-2xl font-semibold tracking-[-.02em] sm:text-[28px]">
+                    Good evening, {userName.split(" ")[0]}.
+                  </h1>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Drop the brief tonight. Wake up to reviewed,
+                    production-ready work.
+                  </p>
+                </div>
+                <div className="flex items-center gap-6 rounded-xl border border-emerald-200 bg-white/70 px-5 py-3">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-emerald-800/60">
+                      Dawn handoff
+                    </p>
+                    <p className="mt-1 font-mono text-lg font-semibold">
+                      06:30 NPT
+                    </p>
+                  </div>
+                  <div className="h-9 w-px bg-emerald-200" />
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-emerald-800/60">
+                      Cycle health
+                    </p>
+                    <p className="mt-1 flex items-center gap-2 text-sm font-medium">
+                      <span className="h-2 w-2 rounded-full bg-emerald-300" />
+                      On track
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-7 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[.13em] text-[#859088]">
+                  {companyName ?? "Your workspace"}
+                </p>
+                <h2 className="mt-1 text-xl font-semibold">
+                  {view === "board"
+                    ? "Tonight’s delivery board"
+                    : "Dawn delivery archive"}
+                </h2>
+                <p className="mt-1 text-sm text-[#758078]">
+                  {view === "board"
+                    ? "Every task follows one guarded path from intake to senior approval."
+                    : "Reviewed work, previews, and repositories from completed cycles."}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 rounded-full border border-[#dfe5e0] bg-white px-3 py-2 text-xs text-[#667168]">
+                <CircleDot className="h-3.5 w-3.5 text-[#1D4B3B]" />
+                {items.length} deliverables this cycle
+              </div>
+            </div>
+
+            {view === "board" ? (
+              <div className="mt-5 grid gap-4 xl:grid-cols-4">
+                {stages.map((stage, index) => {
+                  const columnItems = visible.filter(
+                    (item) => item.status === stage.id,
+                  );
+                  const Icon = stage.icon;
+                  return (
+                    <section
+                      key={stage.id}
+                      className="min-h-[490px] rounded-2xl border border-[#e0e5e0] bg-[#f0f3ef] p-3"
+                    >
+                      <div className="flex items-center gap-3 px-1 py-2">
+                        <span
+                          className={`grid h-8 w-8 place-items-center rounded-lg ${stage.wash} ${stage.color}`}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <div>
+                          <h3 className="text-sm font-semibold">
+                            {stage.label}
+                          </h3>
+                          <p className="text-[11px] text-[#849087]">
+                            {stage.hint}
+                          </p>
+                        </div>
+                        <span className="ml-auto rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-[#68736b]">
+                          {columnItems.length}
+                        </span>
+                        {index < 3 && (
+                          <ArrowRight className="hidden h-3.5 w-3.5 text-[#aab2ac] xl:block" />
+                        )}
+                      </div>
+                      <div className="mt-2 space-y-3">
+                        {columnItems.map((item) => (
+                          <WorkCard
+                            key={item.id}
+                            item={item}
+                            onOpen={() => setSelected(item)}
+                            onAdvance={() => advance(item)}
+                          />
+                        ))}
+                      </div>
+                      {stage.id === "dusk_intake" &&
+                        (role === "qa" || role === "project_manager") && (
+                          <button
+                            onClick={() => setComposer(true)}
+                            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#bec9c1] py-3 text-xs font-medium text-[#627068] hover:border-[#6d927e] hover:bg-white"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            Create task or bug
+                          </button>
+                        )}
+                    </section>
+                  );
+                })}
+              </div>
+            ) : (
+              <Archive
+                items={visible.filter((item) => item.status === "dawn_shipped")}
+              />
+            )}
+          </div>
+        </section>
+      </div>
+      {composer && (
+        <IntakeModal onClose={() => setComposer(false)} onAdd={add} />
+      )}
+      {selected && (
+        <DetailDrawer
+          item={selected}
+          canReview={canReview}
+          onClose={() => setSelected(null)}
+          onUpdate={(patch) => update(selected.id, patch)}
+          onAdvance={() => advance(selected)}
+        />
+      )}
+    </main>
+  );
+}
+
+type GeneratedTask = {
+  title: string;
+  description: string;
+  discipline: "frontend" | "backend" | "qa" | "delivery";
+  technical_requirements: string;
+  testing_criteria: string;
+  priority: "normal" | "high" | "urgent";
+};
+
+function PortalShell({
+  userName,
+  title,
+  subtitle,
+  children,
+}: {
+  userName: string;
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <main className="min-h-screen bg-[#f6f8f6] text-[#17221d]">
+      <header className="flex h-[72px] items-center border-b border-[#e0e6e1] bg-white px-5 sm:px-8">
+        <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#1D4B3B] text-white">
+          <Sunrise className="h-5 w-5" />
+        </span>
+        <div className="ml-3">
+          <p className="font-semibold">Lumetha</p>
+          <p className="text-[10px] uppercase tracking-wider text-[#89938c]">
+            {title}
+          </p>
+        </div>
+        <form action={logout} className="ml-auto">
+          <button className="flex items-center gap-2 rounded-xl border border-[#dde3de] px-3 py-2 text-xs text-[#5f6c64] hover:bg-[#f3f5f3]">
+            <LogOut className="h-3.5 w-3.5" />
+            {userName}
+          </button>
+        </form>
+      </header>
+      <div className="mx-auto max-w-7xl p-5 sm:p-8">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+          <p className="mt-1 text-sm text-[#718078]">{subtitle}</p>
+        </div>
+        {children}
+      </div>
+    </main>
+  );
+}
+
+function ClientPortal({
+  userName,
+  companyId,
+  projectId,
+  companyName,
+}: {
+  userName: string;
+  companyId?: string;
+  projectId?: string;
+  companyName?: string;
+}) {
+  const [title, setTitle] = useState("");
+  const [brief, setBrief] = useState("");
+  const [tasks, setTasks] = useState<GeneratedTask[]>([]);
+  const [status, setStatus] = useState("");
+  const [busy, setBusy] = useState(false);
+  const save = async (submit: boolean) => {
+    if (!companyId || title.trim().length === 0 || brief.trim().length < 20) {
+      setStatus("Add a title and a more detailed requirement.");
+      return false;
+    }
+    const response = await fetch("/api/requirements", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        companyId,
+        title,
+        content: brief,
+        status: submit ? "submitted" : "draft",
+      }),
+    });
+    const body = (await response.json()) as { error?: string };
+    setStatus(
+      response.ok
+        ? submit
+          ? "Requirement submitted to Lumetha."
+          : "Draft saved."
+        : (body.error ?? "Unable to save."),
+    );
+    return response.ok;
+  };
+  const generate = async () => {
+    setBusy(true);
+    setStatus("Structuring frontend, backend, and QA work…");
+    const response = await fetch("/api/ai/brief-to-tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, brief, projectId }),
+    });
+    const body = (await response.json()) as {
+      tasks?: GeneratedTask[];
+      source?: string;
+      created?: number;
+      error?: string;
+    };
+    setBusy(false);
+    if (!response.ok || !body.tasks) {
+      setStatus(body.error ?? "Unable to generate tasks.");
+      return;
+    }
+    setTasks(body.tasks);
+    setStatus(
+      `${body.source === "openai" ? "AI" : "Built-in"} plan ready. ${body.created ?? 0} tasks were added to Dusk Intake for PM review.`,
+    );
+  };
+  return (
+    <PortalShell
+      userName={userName}
+      title="Client requirements"
+      subtitle={`Write and track product requirements for ${companyName ?? "your workspace"}.`}
+    >
+      <div className="mt-7 grid gap-6 lg:grid-cols-[1fr_380px]">
+        <section className="rounded-2xl border border-[#dfe5e0] bg-white p-6">
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-[#3e7257]" />
+            <h2 className="font-semibold">New product requirement</h2>
+          </div>
+          <label className="mt-6 block text-xs font-semibold">
+            Document title
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="What should we build?"
+              className="mt-2 h-11 w-full rounded-xl border border-[#d9e0da] px-3 text-sm outline-none focus:border-[#739581]"
+            />
+          </label>
+          <label className="mt-4 block text-xs font-semibold">
+            Requirements and acceptance criteria
+            <textarea
+              value={brief}
+              onChange={(e) => setBrief(e.target.value)}
+              placeholder="Describe the user problem, desired flow, business rules, examples, Figma links, and how you will know it works…"
+              className="mt-2 min-h-64 w-full rounded-xl border border-[#d9e0da] p-3 text-sm leading-6 outline-none focus:border-[#739581]"
+            />
+          </label>
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => save(false)}
+              className="rounded-xl border border-[#d8dfd9] px-4 py-2.5 text-sm font-medium"
+            >
+              Save draft
+            </button>
+            <button
+              onClick={() => save(true)}
+              className="rounded-xl bg-[#1D4B3B] px-4 py-2.5 text-sm font-medium text-white"
+            >
+              Submit to Lumetha
+            </button>
+            <button
+              disabled={busy || !title || brief.length < 20}
+              onClick={generate}
+              className="ml-auto inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-40"
+            >
+              <Sparkles className="h-4 w-4" />
+              {busy ? "Planning…" : "Generate task plan"}
+            </button>
+          </div>
+          {status && (
+            <p
+              role="status"
+              className="mt-3 rounded-lg bg-[#f1f5f2] px-3 py-2 text-xs text-[#526158]"
+            >
+              {status}
+            </p>
+          )}
+        </section>
+        <aside className="rounded-2xl border border-[#dfe5e0] bg-[#eef3ef] p-5">
+          <h2 className="text-sm font-semibold">Generated delivery plan</h2>
+          <p className="mt-1 text-xs leading-5 text-[#728077]">
+            Review the proposed work. PM and QA can refine it before developers
+            see it.
+          </p>
+          <div className="mt-4 space-y-3">
+            {tasks.length ? (
+              tasks.map((task) => (
+                <article
+                  key={`${task.discipline}-${task.title}`}
+                  className="rounded-xl border border-[#dce3dd] bg-white p-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="rounded-md bg-[#e9f0eb] px-2 py-1 text-[9px] font-bold uppercase text-[#426650]">
+                      {task.discipline}
+                    </span>
+                    <span className="text-[9px] uppercase text-[#89938c]">
+                      {task.priority}
+                    </span>
+                  </div>
+                  <h3 className="mt-2 text-xs font-semibold">{task.title}</h3>
+                  <p className="mt-1 text-[11px] leading-5 text-[#748078]">
+                    {task.technical_requirements}
+                  </p>
+                </article>
+              ))
+            ) : (
+              <div className="grid min-h-48 place-items-center text-center text-xs text-[#7c8880]">
+                <div>
+                  <Sparkles className="mx-auto h-6 w-6" />
+                  <p className="mt-2">
+                    Your structured tasks will appear here.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </aside>
+      </div>
+    </PortalShell>
+  );
+}
+
+function AdminPortal({
+  userName,
+  companyId,
+  companyName,
+}: {
+  userName: string;
+  companyId?: string;
+  companyName?: string;
+}) {
+  const [tab, setTab] = useState<"overview" | "clients" | "team" | "billing">(
+    "overview",
+  );
+  const [email, setEmail] = useState("");
+  const [userRole, setUserRole] = useState("developer");
+  const [message, setMessage] = useState("");
+  const [invoices, setInvoices] = useState([
+    {
+      id: "INV-104",
+      client: companyName ?? "Client workspace",
+      amount: "$4,800",
+      status: "Due Jul 28",
+    },
+  ]);
+  const addMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!companyId) return;
+    const response = await fetch(`/api/companies/${companyId}/members`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        role: userRole === "admin" ? "company_admin" : "member",
+        userRole,
+      }),
+    });
+    const body = (await response.json()) as { error?: string };
+    setMessage(
+      response.ok
+        ? `${userRole.replace("_", " ")} access granted.`
+        : (body.error ?? "Unable to add team member."),
+    );
+    if (response.ok) setEmail("");
+  };
+  const tabs = [
+    { id: "overview", label: "Overview", icon: LayoutGrid },
+    { id: "clients", label: "Clients", icon: Users },
+    { id: "team", label: "Team & roles", icon: ShieldCheck },
+    { id: "billing", label: "Billing", icon: FileText },
+  ] as const;
+  return (
+    <PortalShell
+      userName={userName}
+      title="Lumetha admin"
+      subtitle="Control clients, staffing, delivery health, and commercial operations."
+    >
+      <div className="mt-7 flex flex-wrap gap-2">
+        {tabs.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setTab(id)}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm ${tab === id ? "bg-[#1D4B3B] text-white" : "border border-[#dce2dd] bg-white"}`}
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </button>
+        ))}
+      </div>
+      {tab === "overview" && (
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            ["Active clients", "12", "+2 this month"],
+            ["Tonight’s work", "28", "6 in review"],
+            ["Developer capacity", "82%", "4 available"],
+            ["Outstanding billing", "$14.2k", "3 invoices"],
+          ].map(([label, value, detail]) => (
+            <div
+              key={label}
+              className="rounded-2xl border border-[#dfe5e0] bg-white p-5"
+            >
+              <p className="text-xs text-[#758078]">{label}</p>
+              <p className="mt-3 text-2xl font-semibold">{value}</p>
+              <p className="mt-1 text-[11px] text-[#7f8a82]">{detail}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      {tab === "clients" && (
+        <div className="mt-6 rounded-2xl border border-[#dfe5e0] bg-white">
+          <div className="border-b border-[#e8ece8] p-5">
+            <h2 className="font-semibold">Client engagements</h2>
+          </div>
+          {[
+            companyName ?? "Current workspace",
+            "Northstar Labs",
+            "Evergreen Commerce",
+          ].map((client, i) => (
+            <div
+              key={client}
+              className="flex flex-wrap items-center gap-4 border-b border-[#edf0ed] p-5 last:border-0"
+            >
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#e7efe9] font-semibold text-[#31563f]">
+                {client[0]}
+              </span>
+              <div className="flex-1">
+                <p className="text-sm font-medium">{client}</p>
+                <p className="text-xs text-[#7a857e]">
+                  {i === 0
+                    ? "8 active requirements · cycle on track"
+                    : "No delivery risk"}
+                </p>
+              </div>
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-semibold text-emerald-700">
+                Active
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      {tab === "team" && (
+        <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_360px]">
+          <div className="rounded-2xl border border-[#dfe5e0] bg-white p-5">
+            <h2 className="font-semibold">Role permissions</h2>
+            <div className="mt-4 space-y-3">
+              {[
+                ["Developer", "Assigned board, timer, implementation handoff"],
+                ["QA", "Create bugs, acceptance checks, regression findings"],
+                [
+                  "Project manager",
+                  "Create and prioritize tasks from requirements",
+                ],
+                ["Senior engineer", "Review gate and dawn shipping approval"],
+                ["Lumetha admin", "Clients, team, billing, and full oversight"],
+              ].map(([role, scope]) => (
+                <div key={role} className="rounded-xl bg-[#f5f7f5] p-4">
+                  <p className="text-sm font-medium">{role}</p>
+                  <p className="mt-1 text-xs text-[#758078]">{scope}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <form
+            onSubmit={addMember}
+            className="h-fit rounded-2xl border border-[#dfe5e0] bg-white p-5"
+          >
+            <h2 className="font-semibold">Add team member</h2>
+            <p className="mt-1 text-xs text-[#758078]">
+              The person must register first.
+            </p>
+            <input
+              required
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@lumetha.com"
+              className="mt-5 h-11 w-full rounded-xl border border-[#d9e0da] px-3 text-sm"
+            />
+            <select
+              value={userRole}
+              onChange={(e) => setUserRole(e.target.value)}
+              className="mt-3 h-11 w-full rounded-xl border border-[#d9e0da] bg-white px-3 text-sm"
+            >
+              <option value="developer">Developer</option>
+              <option value="qa">QA</option>
+              <option value="project_manager">Project manager</option>
+              <option value="senior_engineer">Senior engineer</option>
+              <option value="client">Client</option>
+              <option value="admin">Lumetha admin</option>
+            </select>
+            <button className="mt-3 w-full rounded-xl bg-[#1D4B3B] py-2.5 text-sm font-medium text-white">
+              Grant workspace access
+            </button>
+            {message && (
+              <p className="mt-3 text-xs text-[#5d6a62]" role="status">
+                {message}
+              </p>
+            )}
+          </form>
+        </div>
+      )}
+      {tab === "billing" && (
+        <div className="mt-6 rounded-2xl border border-[#dfe5e0] bg-white">
+          <div className="flex items-center border-b border-[#e8ece8] p-5">
+            <div>
+              <h2 className="font-semibold">Invoices and retainers</h2>
+              <p className="mt-1 text-xs text-[#758078]">
+                Commercial tracking stays private to Lumetha admins.
+              </p>
+            </div>
+            <button
+              onClick={() =>
+                setInvoices((current) => [
+                  ...current,
+                  {
+                    id: `INV-${104 + current.length}`,
+                    client: companyName ?? "Client workspace",
+                    amount: "$0",
+                    status: "Draft",
+                  },
+                ])
+              }
+              className="ml-auto rounded-xl bg-[#1D4B3B] px-4 py-2 text-xs font-medium text-white"
+            >
+              Create invoice
+            </button>
+          </div>
+          {invoices.map((invoice) => (
+            <div
+              key={invoice.id}
+              className="grid grid-cols-4 items-center gap-3 border-b border-[#edf0ed] p-5 text-sm last:border-0"
+            >
+              <span className="font-mono text-xs">{invoice.id}</span>
+              <span>{invoice.client}</span>
+              <span className="font-semibold">{invoice.amount}</span>
+              <span className="text-right text-xs text-[#748078]">
+                {invoice.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </PortalShell>
+  );
+}
+
+function SideButton({
+  icon: Icon,
+  label,
+  count,
+  active,
+  onClick,
+}: {
+  icon: typeof LayoutGrid;
+  label: string;
+  count?: number;
+  active?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm ${active ? "bg-[#e6eee9] font-medium text-[#173f2e]" : "text-emerald-50/80 hover:bg-white/10 hover:text-white"}`}
+    >
+      <Icon className="h-4 w-4" />
+      {label}
+      {count !== undefined && (
+        <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold">
+          {count}
+        </span>
+      )}
+    </button>
+  );
+}
+
+function WorkCard({
+  item,
+  onOpen,
+  onAdvance,
+}: {
+  item: WorkItem;
+  onOpen: () => void;
+  onAdvance: () => void;
+}) {
+  const done = item.checklist.filter((c) => c.done).length;
+  return (
+    <article
+      onClick={onOpen}
+      className="group cursor-pointer rounded-xl border border-[#dfe4df] bg-white p-4 shadow-[0_2px_8px_rgba(28,48,37,.04)] transition hover:-translate-y-0.5 hover:border-[#b8c5bc] hover:shadow-md"
+    >
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-[10px] font-semibold tracking-wide text-[#929b95]">
+          {item.key}
+        </span>
+        <span
+          className={`rounded-md px-2 py-1 text-[9px] font-bold uppercase tracking-wide ${item.priority === "Urgent" ? "bg-rose-50 text-rose-700" : item.priority === "High" ? "bg-amber-50 text-amber-700" : "bg-slate-50 text-slate-600"}`}
+        >
+          {item.priority}
+        </span>
+      </div>
+      <h4 className="mt-3 text-[14px] font-semibold leading-5 text-[#26332b]">
+        {item.title}
+      </h4>
+      <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-[#738078]">
+        {item.brief}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {item.tags.map((tag) => (
+          <span
+            key={tag}
+            className="rounded-md bg-[#f0f4f1] px-2 py-1 text-[10px] font-medium text-[#607067]"
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+      {item.checklist.length > 0 && (
+        <div className="mt-4">
+          <div className="mb-1.5 flex justify-between text-[10px] text-[#879189]">
+            <span>
+              {done}/{item.checklist.length} checks
+            </span>
+            <span>{Math.round((done / item.checklist.length) * 100)}%</span>
+          </div>
+          <div className="h-1 overflow-hidden rounded-full bg-[#e9ede9]">
+            <div
+              className="h-full rounded-full bg-[#5b8d72]"
+              style={{ width: `${(done / item.checklist.length) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
+      <div className="mt-4 flex items-center border-t border-[#eef1ee] pt-3">
+        <span className="grid h-6 w-6 place-items-center rounded-full bg-[#dfeae3] text-[9px] font-bold text-[#31533e]">
+          {item.assignee ?? "—"}
+        </span>
+        {item.attachments.length > 0 && (
+          <span className="ml-2 flex items-center gap-1 text-[10px] text-[#879189]">
+            <Paperclip className="h-3 w-3" />
+            {item.attachments.length}
+          </span>
+        )}
+        {item.status !== "pending_senior_review" &&
+          item.status !== "dawn_shipped" && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onAdvance();
+              }}
+              className="ml-auto flex items-center gap-1 text-[10px] font-semibold text-[#3c7156] opacity-0 transition group-hover:opacity-100"
+            >
+              Advance <ArrowRight className="h-3 w-3" />
+            </button>
+          )}
+        {item.status === "pending_senior_review" && (
+          <span className="ml-auto flex items-center gap-1 text-[10px] font-semibold text-amber-700">
+            <ShieldCheck className="h-3 w-3" />
+            Review required
+          </span>
+        )}
+        {item.status === "dawn_shipped" && (
+          <span className="ml-auto flex items-center gap-1 text-[10px] font-semibold text-emerald-700">
+            <CheckCircle2 className="h-3 w-3" />
+            Verified
+          </span>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function IntakeModal({
+  onClose,
+  onAdd,
+}: {
+  onClose: () => void;
+  onAdd: (
+    title: string,
+    brief: string,
+    priority: WorkItem["priority"],
+    attachments: string[],
+  ) => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [brief, setBrief] = useState("");
+  const [priority, setPriority] = useState<WorkItem["priority"]>("Normal");
+  const [files, setFiles] = useState<string[]>([]);
+  return (
+    <div
+      className="fixed inset-0 z-40 grid place-items-center bg-[#10251c]/40 p-4 backdrop-blur-[2px]"
+      onMouseDown={onClose}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="intake-title"
+        onMouseDown={(e) => e.stopPropagation()}
+        className="w-full max-w-2xl rounded-2xl border border-white/50 bg-white p-6 shadow-2xl sm:p-7"
+      >
+        <div className="flex items-start justify-between">
+          <div className="flex gap-3">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-violet-50 text-violet-700">
+              <MoonStar className="h-5 w-5" />
+            </span>
+            <div>
+              <h2 id="intake-title" className="text-lg font-semibold">
+                Drop a dusk brief
+              </h2>
+              <p className="mt-1 text-sm text-[#778179]">
+                Raw notes are welcome. The delivery pod will shape the technical
+                plan.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="rounded-lg p-2 text-[#8b958e] hover:bg-[#f1f3f1]"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <label className="mt-6 block text-xs font-semibold text-[#536159]">
+          Brief title
+          <input
+            autoFocus
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. Add a dark mode preference"
+            className="mt-2 h-11 w-full rounded-xl border border-[#dbe1dc] px-3 text-sm outline-none focus:border-[#6e9a82]"
+          />
+        </label>
+        <label className="mt-4 block text-xs font-semibold text-[#536159]">
+          Everything we should know
+          <textarea
+            value={brief}
+            onChange={(e) => setBrief(e.target.value)}
+            placeholder="Paste feedback, markdown, acceptance notes, or a Figma URL…"
+            className="mt-2 min-h-36 w-full resize-y rounded-xl border border-[#dbe1dc] p-3 text-sm leading-6 outline-none focus:border-[#6e9a82]"
+          />
+        </label>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-[#dce2dd] px-3 py-2 text-xs font-medium text-[#5e6c63] hover:bg-[#f7f9f7]">
+            <Paperclip className="h-3.5 w-3.5" />
+            Attach files
+            <input
+              type="file"
+              multiple
+              className="sr-only"
+              onChange={(e) =>
+                setFiles(Array.from(e.target.files ?? []).map((f) => f.name))
+              }
+            />
+          </label>
+          <span className="flex items-center gap-1 text-[11px] text-[#919a94]">
+            <Link2 className="h-3 w-3" />
+            Figma and repository links can go directly in the brief
+          </span>
+        </div>
+        {files.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {files.map((file) => (
+              <span
+                key={file}
+                className="flex items-center gap-1 rounded-md bg-[#eef3ef] px-2 py-1 text-[10px]"
+              >
+                <FileText className="h-3 w-3" />
+                {file}
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0ed] pt-5">
+          <select
+            value={priority}
+            onChange={(e) =>
+              setPriority(e.target.value as WorkItem["priority"])
+            }
+            className="h-10 rounded-xl border border-[#dbe1dc] bg-white px-3 text-xs"
+          >
+            <option>Normal</option>
+            <option>High</option>
+            <option>Urgent</option>
+          </select>
+          <button
+            disabled={!title.trim() || !brief.trim()}
+            onClick={() => onAdd(title.trim(), brief.trim(), priority, files)}
+            className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#1D4B3B] px-4 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Send className="h-4 w-4" />
+            Send to dusk intake
+          </button>
         </div>
       </section>
     </div>
-    {composer && <IntakeModal onClose={() => setComposer(false)} onAdd={add} />}
-    {selected && <DetailDrawer item={selected} canReview={canReview} onClose={() => setSelected(null)} onUpdate={(patch) => update(selected.id, patch)} onAdvance={() => advance(selected)} />}
-  </main>;
+  );
 }
 
-type GeneratedTask = { title: string; description: string; discipline: "frontend" | "backend" | "qa" | "delivery"; technical_requirements: string; testing_criteria: string; priority: "normal" | "high" | "urgent" };
-
-function PortalShell({ userName, title, subtitle, children }: { userName: string; title: string; subtitle: string; children: React.ReactNode }) {
-  return <main className="min-h-screen bg-[#f6f8f6] text-[#17221d]"><header className="flex h-[72px] items-center border-b border-[#e0e6e1] bg-white px-5 sm:px-8"><span className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-600 text-white"><Sunrise className="h-5 w-5" /></span><div className="ml-3"><p className="font-semibold">Lumetha</p><p className="text-[10px] uppercase tracking-wider text-[#89938c]">{title}</p></div><form action={logout} className="ml-auto"><button className="flex items-center gap-2 rounded-xl border border-[#dde3de] px-3 py-2 text-xs text-[#5f6c64] hover:bg-[#f3f5f3]"><LogOut className="h-3.5 w-3.5" />{userName}</button></form></header><div className="mx-auto max-w-7xl p-5 sm:p-8"><div><h1 className="text-2xl font-semibold tracking-tight">{title}</h1><p className="mt-1 text-sm text-[#718078]">{subtitle}</p></div>{children}</div></main>;
-}
-
-function ClientPortal({ userName, companyId, projectId, companyName }: { userName: string; companyId?: string; projectId?: string; companyName?: string }) {
-  const [title, setTitle] = useState(""); const [brief, setBrief] = useState(""); const [tasks, setTasks] = useState<GeneratedTask[]>([]); const [status, setStatus] = useState(""); const [busy, setBusy] = useState(false);
-  const save = async (submit: boolean) => {
-    if (!companyId || title.trim().length === 0 || brief.trim().length < 20) { setStatus("Add a title and a more detailed requirement."); return false; }
-    const response = await fetch("/api/requirements", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ companyId, title, content: brief, status: submit ? "submitted" : "draft" }) });
-    const body = await response.json() as { error?: string }; setStatus(response.ok ? submit ? "Requirement submitted to Lumetha." : "Draft saved." : body.error ?? "Unable to save."); return response.ok;
+function DetailDrawer({
+  item,
+  canReview,
+  onClose,
+  onUpdate,
+  onAdvance,
+}: {
+  item: WorkItem;
+  canReview: boolean;
+  onClose: () => void;
+  onUpdate: (patch: Partial<WorkItem>) => void;
+  onAdvance: () => void;
+}) {
+  const [tracking, setTracking] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    if (!tracking) return;
+    const timer = window.setInterval(
+      () => setSeconds((current) => current + 1),
+      1000,
+    );
+    return () => window.clearInterval(timer);
+  }, [tracking]);
+  const review = item.review ?? {
+    acceptanceCriteria: false,
+    testsPassing: false,
+    securityReviewed: false,
   };
-  const generate = async () => { setBusy(true); setStatus("Structuring frontend, backend, and QA work…"); const response = await fetch("/api/ai/brief-to-tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, brief, projectId }) }); const body = await response.json() as { tasks?: GeneratedTask[]; source?: string; created?: number; error?: string }; setBusy(false); if (!response.ok || !body.tasks) { setStatus(body.error ?? "Unable to generate tasks."); return; } setTasks(body.tasks); setStatus(`${body.source === "openai" ? "AI" : "Built-in"} plan ready. ${body.created ?? 0} tasks were added to Dusk Intake for PM review.`); };
-  return <PortalShell userName={userName} title="Client requirements" subtitle={`Write and track product requirements for ${companyName ?? "your workspace"}.`}><div className="mt-7 grid gap-6 lg:grid-cols-[1fr_380px]"><section className="rounded-2xl border border-[#dfe5e0] bg-white p-6"><div className="flex items-center gap-2"><FileText className="h-5 w-5 text-[#3e7257]" /><h2 className="font-semibold">New product requirement</h2></div><label className="mt-6 block text-xs font-semibold">Document title<input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What should we build?" className="mt-2 h-11 w-full rounded-xl border border-[#d9e0da] px-3 text-sm outline-none focus:border-[#739581]" /></label><label className="mt-4 block text-xs font-semibold">Requirements and acceptance criteria<textarea value={brief} onChange={(e) => setBrief(e.target.value)} placeholder="Describe the user problem, desired flow, business rules, examples, Figma links, and how you will know it works…" className="mt-2 min-h-64 w-full rounded-xl border border-[#d9e0da] p-3 text-sm leading-6 outline-none focus:border-[#739581]" /></label><div className="mt-5 flex flex-wrap items-center gap-2"><button onClick={() => save(false)} className="rounded-xl border border-[#d8dfd9] px-4 py-2.5 text-sm font-medium">Save draft</button><button onClick={() => save(true)} className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white">Submit to Lumetha</button><button disabled={busy || !title || brief.length < 20} onClick={generate} className="ml-auto inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-40"><Sparkles className="h-4 w-4" />{busy ? "Planning…" : "Generate task plan"}</button></div>{status && <p role="status" className="mt-3 rounded-lg bg-[#f1f5f2] px-3 py-2 text-xs text-[#526158]">{status}</p>}</section><aside className="rounded-2xl border border-[#dfe5e0] bg-[#eef3ef] p-5"><h2 className="text-sm font-semibold">Generated delivery plan</h2><p className="mt-1 text-xs leading-5 text-[#728077]">Review the proposed work. PM and QA can refine it before developers see it.</p><div className="mt-4 space-y-3">{tasks.length ? tasks.map((task) => <article key={`${task.discipline}-${task.title}`} className="rounded-xl border border-[#dce3dd] bg-white p-4"><div className="flex items-center justify-between"><span className="rounded-md bg-[#e9f0eb] px-2 py-1 text-[9px] font-bold uppercase text-[#426650]">{task.discipline}</span><span className="text-[9px] uppercase text-[#89938c]">{task.priority}</span></div><h3 className="mt-2 text-xs font-semibold">{task.title}</h3><p className="mt-1 text-[11px] leading-5 text-[#748078]">{task.technical_requirements}</p></article>) : <div className="grid min-h-48 place-items-center text-center text-xs text-[#7c8880]"><div><Sparkles className="mx-auto h-6 w-6" /><p className="mt-2">Your structured tasks will appear here.</p></div></div>}</div></aside></div></PortalShell>;
-}
-
-function AdminPortal({ userName, companyId, companyName }: { userName: string; companyId?: string; companyName?: string }) {
-  const [tab, setTab] = useState<"overview" | "clients" | "team" | "billing">("overview"); const [email, setEmail] = useState(""); const [userRole, setUserRole] = useState("developer"); const [message, setMessage] = useState(""); const [invoices, setInvoices] = useState([{ id: "INV-104", client: companyName ?? "Client workspace", amount: "$4,800", status: "Due Jul 28" }]);
-  const addMember = async (e: React.FormEvent) => { e.preventDefault(); if (!companyId) return; const response = await fetch(`/api/companies/${companyId}/members`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, role: userRole === "admin" ? "company_admin" : "member", userRole }) }); const body = await response.json() as { error?: string }; setMessage(response.ok ? `${userRole.replace("_", " ")} access granted.` : body.error ?? "Unable to add team member."); if (response.ok) setEmail(""); };
-  const tabs = [{ id: "overview", label: "Overview", icon: LayoutGrid }, { id: "clients", label: "Clients", icon: Users }, { id: "team", label: "Team & roles", icon: ShieldCheck }, { id: "billing", label: "Billing", icon: FileText }] as const;
-  return <PortalShell userName={userName} title="Lumetha admin" subtitle="Control clients, staffing, delivery health, and commercial operations."><div className="mt-7 flex flex-wrap gap-2">{tabs.map(({ id, label, icon: Icon }) => <button key={id} onClick={() => setTab(id)} className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm ${tab === id ? "bg-emerald-600 text-white" : "border border-[#dce2dd] bg-white"}`}><Icon className="h-4 w-4" />{label}</button>)}</div>
-    {tab === "overview" && <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[["Active clients","12","+2 this month"],["Tonight’s work","28","6 in review"],["Developer capacity","82%","4 available"],["Outstanding billing","$14.2k","3 invoices"]].map(([label,value,detail]) => <div key={label} className="rounded-2xl border border-[#dfe5e0] bg-white p-5"><p className="text-xs text-[#758078]">{label}</p><p className="mt-3 text-2xl font-semibold">{value}</p><p className="mt-1 text-[11px] text-[#7f8a82]">{detail}</p></div>)}</div>}
-    {tab === "clients" && <div className="mt-6 rounded-2xl border border-[#dfe5e0] bg-white"><div className="border-b border-[#e8ece8] p-5"><h2 className="font-semibold">Client engagements</h2></div>{[companyName ?? "Current workspace", "Northstar Labs", "Evergreen Commerce"].map((client, i) => <div key={client} className="flex flex-wrap items-center gap-4 border-b border-[#edf0ed] p-5 last:border-0"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#e7efe9] font-semibold text-[#31563f]">{client[0]}</span><div className="flex-1"><p className="text-sm font-medium">{client}</p><p className="text-xs text-[#7a857e]">{i === 0 ? "8 active requirements · cycle on track" : "No delivery risk"}</p></div><span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-semibold text-emerald-700">Active</span></div>)}</div>}
-    {tab === "team" && <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_360px]"><div className="rounded-2xl border border-[#dfe5e0] bg-white p-5"><h2 className="font-semibold">Role permissions</h2><div className="mt-4 space-y-3">{[["Developer","Assigned board, timer, implementation handoff"],["QA","Create bugs, acceptance checks, regression findings"],["Project manager","Create and prioritize tasks from requirements"],["Senior engineer","Review gate and dawn shipping approval"],["Lumetha admin","Clients, team, billing, and full oversight"]].map(([role,scope]) => <div key={role} className="rounded-xl bg-[#f5f7f5] p-4"><p className="text-sm font-medium">{role}</p><p className="mt-1 text-xs text-[#758078]">{scope}</p></div>)}</div></div><form onSubmit={addMember} className="h-fit rounded-2xl border border-[#dfe5e0] bg-white p-5"><h2 className="font-semibold">Add team member</h2><p className="mt-1 text-xs text-[#758078]">The person must register first.</p><input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@lumetha.com" className="mt-5 h-11 w-full rounded-xl border border-[#d9e0da] px-3 text-sm" /><select value={userRole} onChange={(e) => setUserRole(e.target.value)} className="mt-3 h-11 w-full rounded-xl border border-[#d9e0da] bg-white px-3 text-sm"><option value="developer">Developer</option><option value="qa">QA</option><option value="project_manager">Project manager</option><option value="senior_engineer">Senior engineer</option><option value="client">Client</option><option value="admin">Lumetha admin</option></select><button className="mt-3 w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-medium text-white">Grant workspace access</button>{message && <p className="mt-3 text-xs text-[#5d6a62]" role="status">{message}</p>}</form></div>}
-    {tab === "billing" && <div className="mt-6 rounded-2xl border border-[#dfe5e0] bg-white"><div className="flex items-center border-b border-[#e8ece8] p-5"><div><h2 className="font-semibold">Invoices and retainers</h2><p className="mt-1 text-xs text-[#758078]">Commercial tracking stays private to Lumetha admins.</p></div><button onClick={() => setInvoices((current) => [...current, { id: `INV-${104 + current.length}`, client: companyName ?? "Client workspace", amount: "$0", status: "Draft" }])} className="ml-auto rounded-xl bg-emerald-600 px-4 py-2 text-xs font-medium text-white">Create invoice</button></div>{invoices.map((invoice) => <div key={invoice.id} className="grid grid-cols-4 items-center gap-3 border-b border-[#edf0ed] p-5 text-sm last:border-0"><span className="font-mono text-xs">{invoice.id}</span><span>{invoice.client}</span><span className="font-semibold">{invoice.amount}</span><span className="text-right text-xs text-[#748078]">{invoice.status}</span></div>)}</div>}
-  </PortalShell>;
-}
-
-function SideButton({ icon: Icon, label, count, active, onClick }: { icon: typeof LayoutGrid; label: string; count?: number; active?: boolean; onClick?: () => void }) { return <button onClick={onClick} className={`mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm ${active ? "bg-[#e6eee9] font-medium text-[#173f2e]" : "text-emerald-50/80 hover:bg-white/10 hover:text-white"}`}><Icon className="h-4 w-4" />{label}{count !== undefined && <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold">{count}</span>}</button> }
-
-function WorkCard({ item, onOpen, onAdvance }: { item: WorkItem; onOpen: () => void; onAdvance: () => void }) {
-  const done = item.checklist.filter((c) => c.done).length;
-  return <article onClick={onOpen} className="group cursor-pointer rounded-xl border border-[#dfe4df] bg-white p-4 shadow-[0_2px_8px_rgba(28,48,37,.04)] transition hover:-translate-y-0.5 hover:border-[#b8c5bc] hover:shadow-md">
-    <div className="flex items-center justify-between"><span className="font-mono text-[10px] font-semibold tracking-wide text-[#929b95]">{item.key}</span><span className={`rounded-md px-2 py-1 text-[9px] font-bold uppercase tracking-wide ${item.priority === "Urgent" ? "bg-rose-50 text-rose-700" : item.priority === "High" ? "bg-amber-50 text-amber-700" : "bg-slate-50 text-slate-600"}`}>{item.priority}</span></div>
-    <h4 className="mt-3 text-[14px] font-semibold leading-5 text-[#26332b]">{item.title}</h4><p className="mt-1.5 line-clamp-2 text-xs leading-5 text-[#738078]">{item.brief}</p>
-    <div className="mt-3 flex flex-wrap gap-1.5">{item.tags.map((tag) => <span key={tag} className="rounded-md bg-[#f0f4f1] px-2 py-1 text-[10px] font-medium text-[#607067]">{tag}</span>)}</div>
-    {item.checklist.length > 0 && <div className="mt-4"><div className="mb-1.5 flex justify-between text-[10px] text-[#879189]"><span>{done}/{item.checklist.length} checks</span><span>{Math.round(done / item.checklist.length * 100)}%</span></div><div className="h-1 overflow-hidden rounded-full bg-[#e9ede9]"><div className="h-full rounded-full bg-[#5b8d72]" style={{ width: `${done / item.checklist.length * 100}%` }} /></div></div>}
-    <div className="mt-4 flex items-center border-t border-[#eef1ee] pt-3"><span className="grid h-6 w-6 place-items-center rounded-full bg-[#dfeae3] text-[9px] font-bold text-[#31533e]">{item.assignee ?? "—"}</span>{item.attachments.length > 0 && <span className="ml-2 flex items-center gap-1 text-[10px] text-[#879189]"><Paperclip className="h-3 w-3" />{item.attachments.length}</span>}{item.status !== "pending_senior_review" && item.status !== "dawn_shipped" && <button onClick={(e) => { e.stopPropagation(); onAdvance(); }} className="ml-auto flex items-center gap-1 text-[10px] font-semibold text-[#3c7156] opacity-0 transition group-hover:opacity-100">Advance <ArrowRight className="h-3 w-3" /></button>}{item.status === "pending_senior_review" && <span className="ml-auto flex items-center gap-1 text-[10px] font-semibold text-amber-700"><ShieldCheck className="h-3 w-3" />Review required</span>}{item.status === "dawn_shipped" && <span className="ml-auto flex items-center gap-1 text-[10px] font-semibold text-emerald-700"><CheckCircle2 className="h-3 w-3" />Verified</span>}</div>
-  </article>;
-}
-
-function IntakeModal({ onClose, onAdd }: { onClose: () => void; onAdd: (title: string, brief: string, priority: WorkItem["priority"], attachments: string[]) => void }) {
-  const [title, setTitle] = useState(""); const [brief, setBrief] = useState(""); const [priority, setPriority] = useState<WorkItem["priority"]>("Normal"); const [files, setFiles] = useState<string[]>([]);
-  return <div className="fixed inset-0 z-40 grid place-items-center bg-[#10251c]/40 p-4 backdrop-blur-[2px]" onMouseDown={onClose}><section role="dialog" aria-modal="true" aria-labelledby="intake-title" onMouseDown={(e) => e.stopPropagation()} className="w-full max-w-2xl rounded-2xl border border-white/50 bg-white p-6 shadow-2xl sm:p-7">
-    <div className="flex items-start justify-between"><div className="flex gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-violet-50 text-violet-700"><MoonStar className="h-5 w-5" /></span><div><h2 id="intake-title" className="text-lg font-semibold">Drop a dusk brief</h2><p className="mt-1 text-sm text-[#778179]">Raw notes are welcome. The delivery pod will shape the technical plan.</p></div></div><button onClick={onClose} aria-label="Close" className="rounded-lg p-2 text-[#8b958e] hover:bg-[#f1f3f1]"><X className="h-5 w-5" /></button></div>
-    <label className="mt-6 block text-xs font-semibold text-[#536159]">Brief title<input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Add a dark mode preference" className="mt-2 h-11 w-full rounded-xl border border-[#dbe1dc] px-3 text-sm outline-none focus:border-[#6e9a82]" /></label>
-    <label className="mt-4 block text-xs font-semibold text-[#536159]">Everything we should know<textarea value={brief} onChange={(e) => setBrief(e.target.value)} placeholder="Paste feedback, markdown, acceptance notes, or a Figma URL…" className="mt-2 min-h-36 w-full resize-y rounded-xl border border-[#dbe1dc] p-3 text-sm leading-6 outline-none focus:border-[#6e9a82]" /></label>
-    <div className="mt-3 flex flex-wrap items-center gap-2"><label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-[#dce2dd] px-3 py-2 text-xs font-medium text-[#5e6c63] hover:bg-[#f7f9f7]"><Paperclip className="h-3.5 w-3.5" />Attach files<input type="file" multiple className="sr-only" onChange={(e) => setFiles(Array.from(e.target.files ?? []).map((f) => f.name))} /></label><span className="flex items-center gap-1 text-[11px] text-[#919a94]"><Link2 className="h-3 w-3" />Figma and repository links can go directly in the brief</span></div>
-    {files.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{files.map((file) => <span key={file} className="flex items-center gap-1 rounded-md bg-[#eef3ef] px-2 py-1 text-[10px]"><FileText className="h-3 w-3" />{file}</span>)}</div>}
-    <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0ed] pt-5"><select value={priority} onChange={(e) => setPriority(e.target.value as WorkItem["priority"])} className="h-10 rounded-xl border border-[#dbe1dc] bg-white px-3 text-xs"><option>Normal</option><option>High</option><option>Urgent</option></select><button disabled={!title.trim() || !brief.trim()} onClick={() => onAdd(title.trim(), brief.trim(), priority, files)} className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40"><Send className="h-4 w-4" />Send to dusk intake</button></div>
-  </section></div>;
-}
-
-function DetailDrawer({ item, canReview, onClose, onUpdate, onAdvance }: { item: WorkItem; canReview: boolean; onClose: () => void; onUpdate: (patch: Partial<WorkItem>) => void; onAdvance: () => void }) {
-  const [tracking, setTracking] = useState(false); const [seconds, setSeconds] = useState(0);
-  useEffect(() => { if (!tracking) return; const timer = window.setInterval(() => setSeconds((current) => current + 1), 1000); return () => window.clearInterval(timer); }, [tracking]);
-  const review = item.review ?? { acceptanceCriteria: false, testsPassing: false, securityReviewed: false }; const allChecked = Object.values(review).every(Boolean); const ready = allChecked && Boolean(item.summary?.trim()) && Boolean(item.repositoryUrl || item.deploymentUrl);
-  const setReview = (key: keyof Checklist, checked: boolean) => onUpdate({ review: { ...review, [key]: checked } });
-  return <div className="fixed inset-0 z-40 bg-[#10251c]/30" onMouseDown={onClose}><aside role="dialog" aria-modal="true" aria-labelledby="detail-title" onMouseDown={(e) => e.stopPropagation()} className="ml-auto h-full w-full max-w-3xl overflow-y-auto bg-[#fbfcfa] shadow-2xl">
-    <div className="sticky top-0 z-10 flex h-16 items-center border-b border-[#e3e7e3] bg-white/95 px-5 backdrop-blur"><span className="font-mono text-xs font-semibold text-[#7f8a82]">{item.key}</span><span className="mx-3 h-4 w-px bg-[#dfe4df]" /><span className="text-xs font-medium text-[#68746c]">{stages.find((s) => s.id === item.status)?.label}</span><button onClick={onClose} aria-label="Close details" className="ml-auto rounded-lg p-2 text-[#7d8780] hover:bg-[#f0f3ef]"><X className="h-5 w-5" /></button></div>
-    <div className="p-5 sm:p-8"><div className="flex flex-wrap items-start gap-3"><div className="min-w-0 flex-1"><h2 id="detail-title" className="text-2xl font-semibold tracking-tight">{item.title}</h2><p className="mt-3 text-sm leading-6 text-[#657269]">{item.brief}</p></div>{item.status === "in_progress" && <button onClick={() => setTracking(!tracking)} className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold ${tracking ? "bg-rose-50 text-rose-700" : "bg-[#e7efe9] text-[#315c43]"}`}><Clock3 className="h-4 w-4" />{tracking ? "Stop" : "Start"} · {String(Math.floor(seconds / 3600)).padStart(2,"0")}:{String(Math.floor(seconds % 3600 / 60)).padStart(2,"0")}:{String(seconds % 60).padStart(2,"0")}</button>}</div>
-      <div className="mt-7 grid gap-5 md:grid-cols-2"><section className="rounded-2xl border border-[#e0e5e0] bg-white p-5"><div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-violet-600" /><h3 className="text-sm font-semibold">AI technical plan</h3><span className="ml-auto rounded-md bg-violet-50 px-2 py-1 text-[9px] font-bold uppercase text-violet-700">Generated</span></div><div className="mt-4 space-y-3">{item.checklist.length ? item.checklist.map((check) => <div key={check.title} className="flex gap-3 text-xs leading-5"><span className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full ${check.done ? "bg-emerald-100 text-emerald-700" : "border border-[#ccd4ce]"}`}>{check.done && <Check className="h-2.5 w-2.5" />}</span><span className={check.done ? "text-[#7b857e] line-through" : "text-[#4e5b53]"}>{check.title}</span></div>) : <p className="text-xs leading-5 text-[#7c8780]">The AI checklist will appear when the delivery pod accepts this brief.</p>}</div></section>
-        <section className="rounded-2xl border border-amber-200 bg-amber-50/40 p-5"><div className="flex items-center gap-2 text-amber-900"><ShieldCheck className="h-4 w-4" /><h3 className="text-sm font-semibold">Senior validation gate</h3></div><p className="mt-2 text-xs leading-5 text-amber-900/60">A human reviewer must validate every criterion before dawn shipping unlocks.</p><div className="mt-4 space-y-2">{([['acceptanceCriteria','Acceptance criteria verified'],['testsPassing','Automated and manual tests pass'],['securityReviewed','Security and data handling reviewed']] as [keyof Checklist,string][]).map(([key,label]) => <label key={key} className={`flex items-center gap-3 rounded-xl border bg-white p-3 text-xs ${canReview ? "cursor-pointer" : "cursor-not-allowed opacity-65"}`}><input type="checkbox" disabled={!canReview || item.status !== "pending_senior_review"} checked={review[key]} onChange={(e) => setReview(key, e.target.checked)} className="h-4 w-4 accent-[#296044]" />{label}</label>)}</div>{!canReview && <p className="mt-3 flex items-center gap-1.5 text-[10px] font-medium text-amber-800"><ShieldCheck className="h-3 w-3" />Senior reviewer access required</p>}</section></div>
-      <section className="mt-5 rounded-2xl border border-[#e0e5e0] bg-white p-5"><h3 className="text-sm font-semibold">Developer handoff</h3><div className="mt-4 grid gap-3"><textarea value={item.summary ?? ""} onChange={(e) => onUpdate({ summary: e.target.value })} placeholder="Technical summary of what changed, tradeoffs, and testing performed…" className="min-h-24 rounded-xl border border-[#dce2dd] p-3 text-xs leading-5 outline-none focus:border-[#71937f]" /><div className="grid gap-3 sm:grid-cols-2"><label className="relative"><GitBranch className="absolute left-3 top-3 h-4 w-4 text-[#8a948d]" /><input value={item.repositoryUrl ?? ""} onChange={(e) => onUpdate({ repositoryUrl: e.target.value })} placeholder="Repository or pull request URL" className="h-10 w-full rounded-xl border border-[#dce2dd] pl-9 pr-3 text-xs" /></label><label className="relative"><ExternalLink className="absolute left-3 top-3 h-4 w-4 text-[#8a948d]" /><input value={item.deploymentUrl ?? ""} onChange={(e) => onUpdate({ deploymentUrl: e.target.value })} placeholder="Staging preview URL" className="h-10 w-full rounded-xl border border-[#dce2dd] pl-9 pr-3 text-xs" /></label></div></div></section>
-      <div className="mt-6 flex justify-end">{item.status === "dusk_intake" && <button onClick={onAdvance} className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white">Accept & start work</button>}{item.status === "in_progress" && <button onClick={onAdvance} className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white">Submit for senior review</button>}{item.status === "pending_senior_review" && <button disabled={!canReview || !ready} onClick={() => onUpdate({ status: "dawn_shipped", review })} className="inline-flex items-center gap-2 rounded-xl bg-[#d99328] px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"><Sun className="h-4 w-4" />Approve for dawn shipping</button>}</div>
-      {item.status === "pending_senior_review" && !ready && <p className="mt-2 text-right text-[10px] text-[#8a948d]">Complete all review checks, the summary, and at least one delivery link.</p>}
+  const allChecked = Object.values(review).every(Boolean);
+  const ready =
+    allChecked &&
+    Boolean(item.summary?.trim()) &&
+    Boolean(item.repositoryUrl || item.deploymentUrl);
+  const setReview = (key: keyof Checklist, checked: boolean) =>
+    onUpdate({ review: { ...review, [key]: checked } });
+  return (
+    <div className="fixed inset-0 z-40 bg-[#10251c]/30" onMouseDown={onClose}>
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="detail-title"
+        onMouseDown={(e) => e.stopPropagation()}
+        className="ml-auto h-full w-full max-w-3xl overflow-y-auto bg-[#fbfcfa] shadow-2xl"
+      >
+        <div className="sticky top-0 z-10 flex h-16 items-center border-b border-[#e3e7e3] bg-white/95 px-5 backdrop-blur">
+          <span className="font-mono text-xs font-semibold text-[#7f8a82]">
+            {item.key}
+          </span>
+          <span className="mx-3 h-4 w-px bg-[#dfe4df]" />
+          <span className="text-xs font-medium text-[#68746c]">
+            {stages.find((s) => s.id === item.status)?.label}
+          </span>
+          <button
+            onClick={onClose}
+            aria-label="Close details"
+            className="ml-auto rounded-lg p-2 text-[#7d8780] hover:bg-[#f0f3ef]"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="p-5 sm:p-8">
+          <div className="flex flex-wrap items-start gap-3">
+            <div className="min-w-0 flex-1">
+              <h2
+                id="detail-title"
+                className="text-2xl font-semibold tracking-tight"
+              >
+                {item.title}
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-[#657269]">
+                {item.brief}
+              </p>
+            </div>
+            {item.status === "in_progress" && (
+              <button
+                onClick={() => setTracking(!tracking)}
+                className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold ${tracking ? "bg-rose-50 text-rose-700" : "bg-[#e7efe9] text-[#315c43]"}`}
+              >
+                <Clock3 className="h-4 w-4" />
+                {tracking ? "Stop" : "Start"} ·{" "}
+                {String(Math.floor(seconds / 3600)).padStart(2, "0")}:
+                {String(Math.floor((seconds % 3600) / 60)).padStart(2, "0")}:
+                {String(seconds % 60).padStart(2, "0")}
+              </button>
+            )}
+          </div>
+          <div className="mt-7 grid gap-5 md:grid-cols-2">
+            <section className="rounded-2xl border border-[#e0e5e0] bg-white p-5">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-violet-600" />
+                <h3 className="text-sm font-semibold">AI technical plan</h3>
+                <span className="ml-auto rounded-md bg-violet-50 px-2 py-1 text-[9px] font-bold uppercase text-violet-700">
+                  Generated
+                </span>
+              </div>
+              <div className="mt-4 space-y-3">
+                {item.checklist.length ? (
+                  item.checklist.map((check) => (
+                    <div
+                      key={check.title}
+                      className="flex gap-3 text-xs leading-5"
+                    >
+                      <span
+                        className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full ${check.done ? "bg-emerald-100 text-emerald-700" : "border border-[#ccd4ce]"}`}
+                      >
+                        {check.done && <Check className="h-2.5 w-2.5" />}
+                      </span>
+                      <span
+                        className={
+                          check.done
+                            ? "text-[#7b857e] line-through"
+                            : "text-[#4e5b53]"
+                        }
+                      >
+                        {check.title}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs leading-5 text-[#7c8780]">
+                    The AI checklist will appear when the delivery pod accepts
+                    this brief.
+                  </p>
+                )}
+              </div>
+            </section>
+            <section className="rounded-2xl border border-amber-200 bg-amber-50/40 p-5">
+              <div className="flex items-center gap-2 text-amber-900">
+                <ShieldCheck className="h-4 w-4" />
+                <h3 className="text-sm font-semibold">
+                  Senior validation gate
+                </h3>
+              </div>
+              <p className="mt-2 text-xs leading-5 text-amber-900/60">
+                A human reviewer must validate every criterion before dawn
+                shipping unlocks.
+              </p>
+              <div className="mt-4 space-y-2">
+                {(
+                  [
+                    ["acceptanceCriteria", "Acceptance criteria verified"],
+                    ["testsPassing", "Automated and manual tests pass"],
+                    ["securityReviewed", "Security and data handling reviewed"],
+                  ] as [keyof Checklist, string][]
+                ).map(([key, label]) => (
+                  <label
+                    key={key}
+                    className={`flex items-center gap-3 rounded-xl border bg-white p-3 text-xs ${canReview ? "cursor-pointer" : "cursor-not-allowed opacity-65"}`}
+                  >
+                    <input
+                      type="checkbox"
+                      disabled={
+                        !canReview || item.status !== "pending_senior_review"
+                      }
+                      checked={review[key]}
+                      onChange={(e) => setReview(key, e.target.checked)}
+                      className="h-4 w-4 accent-[#296044]"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              {!canReview && (
+                <p className="mt-3 flex items-center gap-1.5 text-[10px] font-medium text-amber-800">
+                  <ShieldCheck className="h-3 w-3" />
+                  Senior reviewer access required
+                </p>
+              )}
+            </section>
+          </div>
+          <section className="mt-5 rounded-2xl border border-[#e0e5e0] bg-white p-5">
+            <h3 className="text-sm font-semibold">Developer handoff</h3>
+            <div className="mt-4 grid gap-3">
+              <textarea
+                value={item.summary ?? ""}
+                onChange={(e) => onUpdate({ summary: e.target.value })}
+                placeholder="Technical summary of what changed, tradeoffs, and testing performed…"
+                className="min-h-24 rounded-xl border border-[#dce2dd] p-3 text-xs leading-5 outline-none focus:border-[#71937f]"
+              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="relative">
+                  <GitBranch className="absolute left-3 top-3 h-4 w-4 text-[#8a948d]" />
+                  <input
+                    value={item.repositoryUrl ?? ""}
+                    onChange={(e) =>
+                      onUpdate({ repositoryUrl: e.target.value })
+                    }
+                    placeholder="Repository or pull request URL"
+                    className="h-10 w-full rounded-xl border border-[#dce2dd] pl-9 pr-3 text-xs"
+                  />
+                </label>
+                <label className="relative">
+                  <ExternalLink className="absolute left-3 top-3 h-4 w-4 text-[#8a948d]" />
+                  <input
+                    value={item.deploymentUrl ?? ""}
+                    onChange={(e) =>
+                      onUpdate({ deploymentUrl: e.target.value })
+                    }
+                    placeholder="Staging preview URL"
+                    className="h-10 w-full rounded-xl border border-[#dce2dd] pl-9 pr-3 text-xs"
+                  />
+                </label>
+              </div>
+            </div>
+          </section>
+          <div className="mt-6 flex justify-end">
+            {item.status === "dusk_intake" && (
+              <button
+                onClick={onAdvance}
+                className="rounded-xl bg-[#1D4B3B] px-4 py-2.5 text-sm font-medium text-white"
+              >
+                Accept & start work
+              </button>
+            )}
+            {item.status === "in_progress" && (
+              <button
+                onClick={onAdvance}
+                className="rounded-xl bg-[#1D4B3B] px-4 py-2.5 text-sm font-medium text-white"
+              >
+                Submit for senior review
+              </button>
+            )}
+            {item.status === "pending_senior_review" && (
+              <button
+                disabled={!canReview || !ready}
+                onClick={() => onUpdate({ status: "dawn_shipped", review })}
+                className="inline-flex items-center gap-2 rounded-xl bg-[#d99328] px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Sun className="h-4 w-4" />
+                Approve for dawn shipping
+              </button>
+            )}
+          </div>
+          {item.status === "pending_senior_review" && !ready && (
+            <p className="mt-2 text-right text-[10px] text-[#8a948d]">
+              Complete all review checks, the summary, and at least one delivery
+              link.
+            </p>
+          )}
+        </div>
+      </aside>
     </div>
-  </aside></div>;
+  );
 }
 
-function Archive({ items }: { items: WorkItem[] }) { return <div className="mt-5 overflow-hidden rounded-2xl border border-[#dfe5e0] bg-white">{items.length === 0 ? <div className="grid min-h-64 place-items-center text-center"><div><Sunrise className="mx-auto h-7 w-7 text-[#7a9b88]" /><p className="mt-3 text-sm font-medium">No dawn deliveries yet</p><p className="mt-1 text-xs text-[#7c8780]">Approved work will collect here automatically.</p></div></div> : items.map((item) => <div key={item.id} className="flex flex-wrap items-center gap-4 border-b border-[#edf0ed] p-5 last:border-0"><span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><CheckCircle2 className="h-5 w-5" /></span><div className="min-w-0 flex-1"><p className="text-sm font-semibold">{item.title}</p><p className="mt-1 font-mono text-[10px] text-[#8a948d]">{item.key} · SENIOR VERIFIED</p></div><div className="flex gap-2">{item.repositoryUrl && <a href={item.repositoryUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 rounded-lg border border-[#dfe4df] px-3 py-2 text-xs"><GitBranch className="h-3.5 w-3.5" />Code</a>}{item.deploymentUrl && <a href={item.deploymentUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-xs text-white"><ExternalLink className="h-3.5 w-3.5" />Preview</a>}</div></div>)}</div> }
-
-
-
+function Archive({ items }: { items: WorkItem[] }) {
+  return (
+    <div className="mt-5 overflow-hidden rounded-2xl border border-[#dfe5e0] bg-white">
+      {items.length === 0 ? (
+        <div className="grid min-h-64 place-items-center text-center">
+          <div>
+            <Sunrise className="mx-auto h-7 w-7 text-[#7a9b88]" />
+            <p className="mt-3 text-sm font-medium">No dawn deliveries yet</p>
+            <p className="mt-1 text-xs text-[#7c8780]">
+              Approved work will collect here automatically.
+            </p>
+          </div>
+        </div>
+      ) : (
+        items.map((item) => (
+          <div
+            key={item.id}
+            className="flex flex-wrap items-center gap-4 border-b border-[#edf0ed] p-5 last:border-0"
+          >
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700">
+              <CheckCircle2 className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold">{item.title}</p>
+              <p className="mt-1 font-mono text-[10px] text-[#8a948d]">
+                {item.key} · SENIOR VERIFIED
+              </p>
+            </div>
+            <div className="flex gap-2">
+              {item.repositoryUrl && (
+                <a
+                  href={item.repositoryUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1 rounded-lg border border-[#dfe4df] px-3 py-2 text-xs"
+                >
+                  <GitBranch className="h-3.5 w-3.5" />
+                  Code
+                </a>
+              )}
+              {item.deploymentUrl && (
+                <a
+                  href={item.deploymentUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1 rounded-lg bg-[#1D4B3B] px-3 py-2 text-xs text-white"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Preview
+                </a>
+              )}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
