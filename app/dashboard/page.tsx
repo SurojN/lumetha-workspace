@@ -15,16 +15,16 @@ export default function Dashboard() {
   const { data: projects, isLoading } = useProjects();
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen bg-slate-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+              <h1 className="text-3xl font-bold text-slate-900">
                 Dashboard
               </h1>
-              <p className="text-slate-600 dark:text-slate-400 mt-1">
+              <p className="text-slate-600 mt-1">
                 Manage your projects and tasks
               </p>
             </div>
@@ -41,7 +41,7 @@ export default function Dashboard() {
               {[...Array(3)].map((_, i) => (
                 <Card key={i} className="animate-pulse">
                   <CardHeader>
-                    <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
+                    <div className="h-4 bg-slate-200 rounded w-3/4"></div>
                   </CardHeader>
                 </Card>
               ))}
@@ -65,7 +65,7 @@ export default function Dashboard() {
                     </CardHeader>
                     <CardContent>
                       {project.description && (
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                        <p className="text-sm text-slate-600">
                           {project.description}
                         </p>
                       )}
@@ -77,7 +77,7 @@ export default function Dashboard() {
           ) : (
             <Card>
               <CardContent className="pt-6 text-center">
-                <p className="text-slate-600 dark:text-slate-400 mb-4">
+                <p className="text-slate-600 mb-4">
                   No projects yet. Create your first project to get started!
                 </p>
                 <Link href="/dashboard/new-project">
@@ -91,3 +91,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

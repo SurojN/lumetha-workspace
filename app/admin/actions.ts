@@ -5,6 +5,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import bcrypt from "bcryptjs";
 
 async function requireAdmin() {
   const user = await requireUser();
@@ -14,6 +15,56 @@ async function requireAdmin() {
 
 const id = z.string().min(1);
 const cycleStatuses = ["intake_open", "scope_locked", "in_sprint", "dawn_delivery"] as const;
+const assignableRoles = ["client", "developer", "qa", "project_manager", "senior_engineer", "admin"] as const;
+
+const accountSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  email: z.email().trim().toLowerCase(),
+  companyId: id,
+  role: z.enum(assignableRoles),
+});
+
+async function assertCompany(companyId: string) {
+  const company = await prisma.company.findUnique({ where: { id: companyId } });
+  if (!company) throw new Error("COMPANY_NOT_FOUND");
+  return company;
+}
+
+export async function createWorkspaceUser(formData: FormData) {
+  const admin = await requireAdmin();
+  const parsed = accountSchema.extend({ password: z.string().min(10).max(128) }).parse(Object.fromEntries(formData));
+  await assertCompany(parsed.companyId);
+  if (await prisma.user.findUnique({ where: { email: parsed.email } })) throw new Error("EMAIL_ALREADY_EXISTS");
+  const user = await prisma.user.create({ data: { name: parsed.name, email: parsed.email, role: parsed.role, password: await bcrypt.hash(parsed.password, 12), companyMemberships: { create: { companyId: parsed.companyId, role: parsed.role === "admin" ? "company_admin" : "member" } } } });
+  await prisma.auditEvent.create({ data: { actorId: admin.id, action: "workspace_user_created", details: { userId: user.id, email: user.email, role: user.role, companyId: parsed.companyId } } });
+  revalidatePath("/admin");
+}
+
+export async function approveAccessRequest(formData: FormData) {
+  const admin = await requireAdmin();
+  const parsed = accountSchema.pick({ companyId: true, role: true }).extend({ userId: id }).parse(Object.fromEntries(formData));
+  const pending = await prisma.user.findUnique({ where: { id: parsed.userId } });
+  if (!pending?.email || pending.role !== "pending") throw new Error("REQUEST_NOT_PENDING");
+  await assertCompany(parsed.companyId);
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: pending.id }, data: { role: parsed.role, companyMemberships: { create: { companyId: parsed.companyId, role: parsed.role === "admin" ? "company_admin" : "member" } } } }),
+    prisma.auditEvent.create({ data: { actorId: admin.id, action: "access_request_approved", details: { userId: pending.id, email: pending.email, role: parsed.role, companyId: parsed.companyId } } }),
+  ]);
+  revalidatePath("/admin");
+}
+
+export async function rejectAccessRequest(formData: FormData) {
+  const admin = await requireAdmin();
+  const userId = id.parse(formData.get("userId"));
+  if (userId === admin.id) throw new Error("CANNOT_REMOVE_SELF");
+  const pending = await prisma.user.findUnique({ where: { id: userId } });
+  if (!pending || pending.role !== "pending") throw new Error("REQUEST_NOT_PENDING");
+  await prisma.$transaction([
+    prisma.auditEvent.create({ data: { actorId: admin.id, action: "access_request_rejected", details: { userId: pending.id, email: pending.email } } }),
+    prisma.user.delete({ where: { id: pending.id } }),
+  ]);
+  revalidatePath("/admin");
+}
 
 export async function createDeliveryCycle(formData: FormData) {
   const admin = await requireAdmin();
