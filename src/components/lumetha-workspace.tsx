@@ -72,21 +72,21 @@ export function LumethaWorkspace({ userName, companyId, projectId, companyName, 
 
   return <main className="min-h-screen bg-[#f7f8f6] text-[#17221d]">
     <div className="flex min-h-screen">
-      <aside className="hidden w-64 shrink-0 border-r border-[#e1e6e1] bg-[#fbfcfa] lg:flex lg:flex-col">
-        <div className="flex h-[72px] items-center gap-3 border-b border-[#e7ebe7] px-5">
-          <div className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-600 text-white"><Sunrise className="h-5 w-5" /></div>
+      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col overflow-hidden border-r border-emerald-700 bg-emerald-600 text-white lg:flex">
+        <div className="flex h-[72px] items-center gap-3 border-b border-white/15 px-5">
+          <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/15 text-white"><Sunrise className="h-5 w-5" /></div>
           <div><p className="font-semibold tracking-tight">Lumetha</p><p className="text-[11px] text-[#78827c]">Daybreak workspace</p></div>
         </div>
-        <nav className="flex-1 p-3">
-          <p className="px-3 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[.14em] text-[#98a09b]">Overnight cycle</p>
+        <nav className="min-h-0 flex-1 overflow-hidden p-3">
+          <p className="px-3 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[.14em] text-emerald-50/60">Overnight cycle</p>
           <SideButton active={view === "board"} icon={LayoutGrid} label="Daybreak board" count={items.filter((i) => i.status !== "dawn_shipped").length} onClick={() => setView("board")} />
           <SideButton active={view === "shipped"} icon={Sunrise} label="Dawn archive" count={items.filter((i) => i.status === "dawn_shipped").length} onClick={() => setView("shipped")} />
           {canReview && <SideButton active={false} icon={ClipboardCheck} label="Review queue" count={items.filter((i) => i.status === "pending_senior_review").length} onClick={() => { setView("board"); setQuery(""); }} />}
         </nav>
-        <div className="border-t border-[#e7ebe7] p-3">
-          <div className="relative"><button onClick={() => setMenu(!menu)} className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-[#f0f3ef]">
+        <div className="shrink-0 border-t border-white/15 bg-emerald-600 p-3">
+          <div className="relative"><button onClick={() => setMenu(!menu)} className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-white/10">
             <span className="grid h-9 w-9 place-items-center rounded-full bg-[#dce9e1] text-xs font-bold text-[#204733]">{initials}</span>
-            <span className="min-w-0"><span className="block truncate text-sm font-medium">{userName}</span><span className="block text-xs text-[#7b857e]">{canReview ? "Senior reviewer" : "Delivery member"}</span></span><ChevronDown className="ml-auto h-4 w-4 text-[#8a938d]" />
+            <span className="min-w-0"><span className="block truncate text-sm font-medium">{userName}</span><span className="block text-xs text-emerald-50/65">{canReview ? "Senior reviewer" : "Delivery member"}</span></span><ChevronDown className="ml-auto h-4 w-4 text-emerald-50/60" />
           </button>{menu && <form action={logout} className="absolute bottom-14 left-0 right-0 rounded-xl border border-[#e1e6e1] bg-white p-1 shadow-lg"><button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-rose-700 hover:bg-rose-50"><LogOut className="h-4 w-4" />Sign out</button></form>}</div>
         </div>
       </aside>
@@ -149,7 +149,7 @@ function AdminPortal({ userName, companyId, companyName }: { userName: string; c
   </PortalShell>;
 }
 
-function SideButton({ icon: Icon, label, count, active, onClick }: { icon: typeof LayoutGrid; label: string; count?: number; active?: boolean; onClick?: () => void }) { return <button onClick={onClick} className={`mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm ${active ? "bg-[#e6eee9] font-medium text-[#173f2e]" : "text-[#647068] hover:bg-[#f0f3ef]"}`}><Icon className="h-4 w-4" />{label}{count !== undefined && <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold">{count}</span>}</button> }
+function SideButton({ icon: Icon, label, count, active, onClick }: { icon: typeof LayoutGrid; label: string; count?: number; active?: boolean; onClick?: () => void }) { return <button onClick={onClick} className={`mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm ${active ? "bg-[#e6eee9] font-medium text-[#173f2e]" : "text-emerald-50/80 hover:bg-white/10 hover:text-white"}`}><Icon className="h-4 w-4" />{label}{count !== undefined && <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold">{count}</span>}</button> }
 
 function WorkCard({ item, onOpen, onAdvance }: { item: WorkItem; onOpen: () => void; onAdvance: () => void }) {
   const done = item.checklist.filter((c) => c.done).length;
@@ -192,5 +192,6 @@ function DetailDrawer({ item, canReview, onClose, onUpdate, onAdvance }: { item:
 }
 
 function Archive({ items }: { items: WorkItem[] }) { return <div className="mt-5 overflow-hidden rounded-2xl border border-[#dfe5e0] bg-white">{items.length === 0 ? <div className="grid min-h-64 place-items-center text-center"><div><Sunrise className="mx-auto h-7 w-7 text-[#7a9b88]" /><p className="mt-3 text-sm font-medium">No dawn deliveries yet</p><p className="mt-1 text-xs text-[#7c8780]">Approved work will collect here automatically.</p></div></div> : items.map((item) => <div key={item.id} className="flex flex-wrap items-center gap-4 border-b border-[#edf0ed] p-5 last:border-0"><span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><CheckCircle2 className="h-5 w-5" /></span><div className="min-w-0 flex-1"><p className="text-sm font-semibold">{item.title}</p><p className="mt-1 font-mono text-[10px] text-[#8a948d]">{item.key} · SENIOR VERIFIED</p></div><div className="flex gap-2">{item.repositoryUrl && <a href={item.repositoryUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 rounded-lg border border-[#dfe4df] px-3 py-2 text-xs"><GitBranch className="h-3.5 w-3.5" />Code</a>}{item.deploymentUrl && <a href={item.deploymentUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-xs text-white"><ExternalLink className="h-3.5 w-3.5" />Preview</a>}</div></div>)}</div> }
+
 
 
