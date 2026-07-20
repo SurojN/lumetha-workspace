@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -16,6 +16,7 @@ import {
   Menu,
   MoonStar,
   RotateCcw,
+  Search,
   ShieldAlert,
   Sunrise,
   UserPlus,
@@ -472,7 +473,7 @@ function AccessControl({
                       <RoleCheckboxes defaults={["client"]} compact />
                       <Button
                         size="sm"
-                        className="bg-emerald-700 hover:bg-[#1D4B3B]"
+                        className="bg-emerald-700 text-white hover:bg-[#1D4B3B] hover:text-white"
                       >
                         <Check />
                         Approve
@@ -557,7 +558,7 @@ function AccessControl({
                 <legend className="text-[11px] font-semibold text-slate-600">Workspace roles</legend>
                 <RoleCheckboxes defaults={["developer"]} />
               </fieldset>
-              <Button className="mt-2 w-full bg-[#1D4B3B] hover:bg-emerald-500">
+              <Button className="mt-2 w-full bg-[#1D4B3B] text-white hover:bg-emerald-500 hover:text-white">
                 <UserPlus />
                 Create user
               </Button>
@@ -573,42 +574,73 @@ function AccessControl({
           </div>
           <span className="text-xs text-slate-500">{people.length} people</span>
         </div>
-        <div className="grid gap-4 lg:grid-cols-2">
-          {people.map((person) => {
-            const roles = person.roleAssignments.length ? person.roleAssignments.map(({ role }) => role) : [person.role];
-            const membership = person.companyMemberships[0];
-            return (
-              <Card key={person.id} className="rounded-2xl shadow-none">
-                <CardContent className="p-5">
-                  <form action={updateWorkspaceUser} className="space-y-3">
-                    <input type="hidden" name="userId" value={person.id} />
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <Input name="name" required minLength={2} defaultValue={person.name ?? ""} aria-label="Full name" />
-                      <Input name="email" type="email" required defaultValue={person.email ?? ""} aria-label="Work email" />
-                    </div>
-                    <select name="companyId" required defaultValue={membership?.companyId} className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
-                      {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
-                    </select>
-                    <RoleCheckboxes defaults={roles} />
-                    <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
-                      <Button size="sm" className="bg-[#1D4B3B] hover:bg-emerald-700">Save changes</Button>
-                      {!person.hasPassword && <span className="text-[10px] font-medium text-amber-700">{person.setupEmailSent ? "Setup email sent" : "Email not delivered — configure Resend or retry"}</span>}
-                    </div>
-                  </form>
-                  <div className="mt-2 flex gap-2">
-                    <form action={resendAccountSetup}><input type="hidden" name="userId" value={person.id} /><Button size="sm" variant="outline">Send setup link</Button></form>
-                    {person.id !== userId && person.email !== "lumethaadmin@lumetha.lu" && (
-                      <form action={removeWorkspaceUser}><input type="hidden" name="userId" value={person.id} /><Button size="sm" variant="outline" className="border-rose-200 text-rose-700">Remove access</Button></form>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        <PeopleDirectory people={people} companies={companies} currentUserId={userId} />
       </section>
     </div>
   );
+}
+
+function PeopleDirectory({ people, companies, currentUserId }: { people: Props["people"]; companies: Props["companies"]; currentUserId: string }) {
+  const [query, setQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [companyFilter, setCompanyFilter] = useState("all");
+  const [setupFilter, setSetupFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+  const filtered = useMemo(() => people.filter((person) => {
+    const roles = person.roleAssignments.length ? person.roleAssignments.map(({ role }) => role) : [person.role];
+    const matchesQuery = `${person.name ?? ""} ${person.email ?? ""}`.toLowerCase().includes(query.trim().toLowerCase());
+    const matchesRole = roleFilter === "all" || roles.includes(roleFilter);
+    const matchesCompany = companyFilter === "all" || person.companyMemberships.some(({ companyId }) => companyId === companyFilter);
+    const matchesSetup = setupFilter === "all" || (setupFilter === "active" ? person.hasPassword : !person.hasPassword);
+    return matchesQuery && matchesRole && matchesCompany && matchesSetup;
+  }), [people, query, roleFilter, companyFilter, setupFilter]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const visible = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const resetPage = () => setPage(1);
+
+  return (
+    <Card className="overflow-hidden rounded-2xl shadow-none">
+      <div className="grid gap-3 border-b border-slate-200 bg-slate-50/70 p-4 md:grid-cols-[minmax(220px,1fr)_180px_180px_170px]">
+        <label className="relative"><span className="sr-only">Search people</span><Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" /><Input value={query} onChange={(event) => { setQuery(event.target.value); resetPage(); }} placeholder="Search name or email…" className="bg-white pl-9" /></label>
+        <FilterSelect label="Filter by role" value={roleFilter} onChange={(value) => { setRoleFilter(value); resetPage(); }} options={[{ value: "all", label: "All roles" }, ...roleOptions]} />
+        <FilterSelect label="Filter by company" value={companyFilter} onChange={(value) => { setCompanyFilter(value); resetPage(); }} options={[{ value: "all", label: "All companies" }, ...companies.map(({ id, name }) => ({ value: id, label: name }))]} />
+        <FilterSelect label="Filter by setup status" value={setupFilter} onChange={(value) => { setSetupFilter(value); resetPage(); }} options={[{ value: "all", label: "All statuses" }, { value: "active", label: "Account active" }, { value: "pending", label: "Setup pending" }]} />
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[850px] text-left text-sm">
+          <thead className="border-b border-slate-200 bg-white text-[10px] uppercase tracking-wider text-slate-500"><tr><th className="px-5 py-3 font-semibold">Person</th><th className="px-4 py-3 font-semibold">Company</th><th className="px-4 py-3 font-semibold">Roles</th><th className="px-4 py-3 font-semibold">Status</th><th className="px-5 py-3 text-right font-semibold">Manage</th></tr></thead>
+          <tbody className="divide-y divide-slate-100">
+            {visible.map((person) => {
+              const roles = person.roleAssignments.length ? person.roleAssignments.map(({ role }) => role) : [person.role];
+              const membership = person.companyMemberships[0];
+              return (
+                <tr key={person.id} className="align-top hover:bg-emerald-50/20">
+                  <td className="px-5 py-4"><p className="font-semibold text-slate-900">{person.name ?? "Unnamed"}</p><p className="mt-0.5 text-xs text-slate-500">{person.email}</p></td>
+                  <td className="px-4 py-4 text-xs text-slate-600">{membership?.company.name ?? "—"}</td>
+                  <td className="px-4 py-4"><div className="flex max-w-xs flex-wrap gap-1">{roles.map((role) => <span key={role} className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-800">{roleOptions.find((item) => item.value === role)?.label ?? role}</span>)}</div></td>
+                  <td className="px-4 py-4"><span className={`text-xs font-medium ${person.hasPassword ? "text-emerald-700" : "text-amber-700"}`}>{person.hasPassword ? "Active" : person.setupEmailSent ? "Invite sent" : "Invite pending"}</span></td>
+                  <td className="px-5 py-3 text-right">
+                    <details className="group inline-block text-left"><summary className="cursor-pointer list-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold hover:border-emerald-300">Edit</summary><div className="mt-2 w-[420px] rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm">
+                      <form action={updateWorkspaceUser} className="space-y-3"><input type="hidden" name="userId" value={person.id} /><div className="grid gap-3 sm:grid-cols-2"><Input name="name" required minLength={2} defaultValue={person.name ?? ""} aria-label="Full name" /><Input name="email" type="email" required defaultValue={person.email ?? ""} aria-label="Work email" /></div><select name="companyId" required defaultValue={membership?.companyId} className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select><RoleCheckboxes defaults={roles} /><Button size="sm" className="bg-[#1D4B3B] text-white hover:bg-emerald-700 hover:text-white">Save changes</Button></form>
+                      <div className="mt-3 flex gap-2 border-t border-slate-100 pt-3"><form action={resendAccountSetup}><input type="hidden" name="userId" value={person.id} /><Button size="sm" variant="outline">Send setup link</Button></form>{person.id !== currentUserId && person.email !== "lumethaadmin@lumetha.lu" && <form action={removeWorkspaceUser}><input type="hidden" name="userId" value={person.id} /><Button size="sm" variant="outline" className="border-rose-200 text-rose-700">Remove access</Button></form>}</div>
+                    </div></details>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {!visible.length && <p className="p-10 text-center text-sm text-slate-500">No people match these filters.</p>}
+      </div>
+      <div className="flex items-center justify-between border-t border-slate-200 px-5 py-4 text-xs text-slate-500"><span>Showing {visible.length ? (safePage - 1) * pageSize + 1 : 0}–{Math.min(safePage * pageSize, filtered.length)} of {filtered.length}</span><div className="flex gap-2"><Button size="sm" variant="outline" disabled={safePage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Previous</Button><Button size="sm" variant="outline" disabled={safePage === pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>Next</Button></div></div>
+    </Card>
+  );
+}
+
+function FilterSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: { value: string; label: string }[] }) {
+  return <label><span className="sr-only">{label}</span><select aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
 }
 
 function RoleCheckboxes({ defaults, compact = false }: { defaults: string[]; compact?: boolean }) {
@@ -744,7 +776,7 @@ function CycleManager({
               required
               defaultValue={new Date().toISOString().slice(0, 10)}
             />
-            <Button className="w-full bg-[#1D4B3B] hover:bg-emerald-500">
+            <Button className="w-full bg-[#1D4B3B] text-white hover:bg-emerald-500 hover:text-white">
               Open intake
             </Button>
           </form>
@@ -872,7 +904,7 @@ function Dispatch({
                     <div className="mt-3 flex justify-end">
                       <Button
                         size="sm"
-                        className="bg-[#1D4B3B] hover:bg-emerald-500"
+                        className="bg-[#1D4B3B] text-white hover:bg-emerald-500 hover:text-white"
                       >
                         Validate & save override
                       </Button>

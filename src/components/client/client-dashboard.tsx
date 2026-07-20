@@ -428,7 +428,7 @@ function DuskIntake(props: Props) {
               <Button
                 type="submit"
                 disabled={!canLock}
-                className="ml-auto rounded-xl bg-[#1D4B3B] hover:bg-emerald-500"
+                className="ml-auto rounded-xl bg-[#1D4B3B] text-white hover:bg-emerald-500 hover:text-white"
               >
                 <LockKeyhole />
                 Lock brief & create {tasks.length || ""} tasks
@@ -679,7 +679,7 @@ function DawnReview({ tasks }: { tasks: Task[] }) {
                     <Button
                       size="sm"
                       onClick={() => setSelected(task)}
-                      className="ml-auto bg-[#1D4B3B] hover:bg-emerald-500"
+                      className="ml-auto bg-[#1D4B3B] text-white hover:bg-emerald-500 hover:text-white"
                     >
                       Review delivery
                     </Button>
@@ -804,7 +804,7 @@ function DecisionModal({ task, onClose }: { task: Task; onClose: () => void }) {
               <Button
                 className={
                   decision === "approved"
-                    ? "bg-emerald-700 hover:bg-[#1D4B3B]"
+                    ? "bg-emerald-700 text-white hover:bg-[#1D4B3B] hover:text-white"
                     : "bg-rose-700 hover:bg-rose-600"
                 }
               >
