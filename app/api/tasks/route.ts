@@ -7,7 +7,7 @@ export async function GET() {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const tasks = await prisma.task.findMany({
-      where: { project: { company: { members: { some: { userId: user.id } } } } },
+      where: { project: { company: { members: { some: { userId: user.id } } } }, ...(user.role === "developer" ? { assigneeId: user.id } : {}), ...(user.role === "senior_engineer" ? { status: "pending_senior_review" as const } : {}) },
       include: {
         creator: true,
         assignee: true,

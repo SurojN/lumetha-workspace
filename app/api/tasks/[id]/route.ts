@@ -57,6 +57,8 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     const existing = await prisma.task.findUnique({ where: { id }, include: { project: { select: { companyId: true } } } });
     if (!existing) return NextResponse.json({ error: "Task not found" }, { status: 404 });
     const { user, membership } = await requireCompanyMembership(existing.project.companyId);
+    if (user.role === "client") return NextResponse.json({ error: "Clients cannot update delivery tasks" }, { status: 403 });
+    if (user.role === "developer" && existing.assigneeId !== user.id) return NextResponse.json({ error: "Developers can only update assigned tasks" }, { status: 403 });
 
     if (body.status && !canTransition(existing.status as DaybreakStatus, body.status)) {
       return NextResponse.json({ error: `Invalid lifecycle transition: ${existing.status} → ${body.status}` }, { status: 409 });

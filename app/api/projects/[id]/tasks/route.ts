@@ -25,10 +25,10 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
     const { id } = await params;
     const project = await prisma.project.findUnique({ where: { id }, select: { companyId: true } });
     if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
-    await requireCompanyMembership(project.companyId);
+    const { user } = await requireCompanyMembership(project.companyId);
 
     const tasks = await prisma.task.findMany({
-      where: { projectId: id },
+      where: { projectId: id, ...(user.role === "developer" ? { assigneeId: user.id } : {}), ...(user.role === "senior_engineer" ? { status: "pending_senior_review" as const } : {}) },
       include: {
         creator: true,
         assignee: true,
@@ -60,6 +60,7 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     const project = await prisma.project.findUnique({ where: { id }, select: { companyId: true } });
     if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
     const { user } = await requireCompanyMembership(project.companyId);
+    if (!["qa", "project_manager", "admin"].includes(user.role)) return NextResponse.json({ error: "Only PM, QA, or Lumetha admins can create tasks" }, { status: 403 });
     if (cycleId) {
       const cycle = await prisma.deliveryCycle.findFirst({ where: { id: cycleId, isActive: true } });
       if (!cycle) return NextResponse.json({ error: "Delivery cycle is not active" }, { status: 409 });
