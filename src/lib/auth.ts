@@ -43,7 +43,7 @@ export async function getCurrentUser() {
     where: { sessionToken: hashToken(token) },
     include: { user: true },
   });
-  if (!session || session.expires < new Date()) {
+  if (!session || session.expires < new Date() || session.user.disabledAt) {
     if (session) await prisma.session.delete({ where: { id: session.id } });
     return null;
   }

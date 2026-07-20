@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireCompanyMembership } from "@/lib/auth";
 import { z } from "zod";
+import { rolesForUser } from "@/lib/roles";
 
 const createTaskSchema = z.object({
   title: z.string().trim().min(1).max(160),
@@ -26,9 +27,15 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
     const project = await prisma.project.findUnique({ where: { id }, select: { companyId: true } });
     if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
     const { user } = await requireCompanyMembership(project.companyId);
+    const roles = await rolesForUser(user.id, user.role);
+    const visibility = roles.includes("developer") && roles.includes("senior_engineer")
+      ? { OR: [{ assigneeId: user.id }, { status: "pending_senior_review" as const }] }
+      : roles.includes("developer") ? { assigneeId: user.id }
+      : roles.includes("senior_engineer") ? { status: "pending_senior_review" as const }
+      : {};
 
     const tasks = await prisma.task.findMany({
-      where: { projectId: id, ...(user.role === "developer" ? { assigneeId: user.id } : {}), ...(user.role === "senior_engineer" ? { status: "pending_senior_review" as const } : {}) },
+      where: { projectId: id, ...visibility },
       include: {
         creator: true,
         assignee: true,
@@ -60,7 +67,8 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
     const project = await prisma.project.findUnique({ where: { id }, select: { companyId: true } });
     if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
     const { user } = await requireCompanyMembership(project.companyId);
-    if (!["qa", "project_manager", "admin"].includes(user.role)) return NextResponse.json({ error: "Only PM, QA, or Lumetha admins can create tasks" }, { status: 403 });
+    const roles = await rolesForUser(user.id, user.role);
+    if (!roles.some((role) => ["qa", "project_manager", "admin"].includes(role))) return NextResponse.json({ error: "Only PM, QA, or Lumetha admins can create tasks" }, { status: 403 });
     if (cycleId) {
       const cycle = await prisma.deliveryCycle.findFirst({ where: { id: cycleId, isActive: true } });
       if (!cycle) return NextResponse.json({ error: "Delivery cycle is not active" }, { status: 409 });

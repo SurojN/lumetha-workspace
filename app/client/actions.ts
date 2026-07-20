@@ -5,10 +5,11 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { userHasRole } from "@/lib/roles";
 
 async function requireClient() {
   const user = await requireUser();
-  if (user.role !== "client") throw new Error("CLIENT_REQUIRED");
+  if (!(await userHasRole(user.id, ["client"], user.role))) throw new Error("CLIENT_REQUIRED");
   return user;
 }
 

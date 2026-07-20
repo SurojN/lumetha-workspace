@@ -34,6 +34,9 @@ import {
   overrideAiTaskPlan,
   reassignTask,
   rejectAccessRequest,
+  removeWorkspaceUser,
+  resendAccountSetup,
+  updateWorkspaceUser,
   updateClientCapacity,
   updateCycleStatus,
 } from "@/app/admin/actions";
@@ -53,6 +56,7 @@ type CycleStatus =
   | "in_sprint"
   | "dawn_delivery";
 type Props = {
+  userId: string;
   userName: string;
   companies: { id: string; name: string; capacityLimit: number }[];
   projects: { id: string; name: string; company: { name: string } }[];
@@ -96,6 +100,17 @@ type Props = {
     name: string | null;
     email: string | null;
     createdAt: string;
+  }[];
+  people: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    role: string;
+    disabledAt: string | null;
+    hasPassword: boolean;
+    setupEmailSent: boolean;
+    roleAssignments: { role: string }[];
+    companyMemberships: { companyId: string; company: { name: string } }[];
   }[];
 };
 
@@ -229,8 +244,10 @@ export function AdminCommandCenter(props: Props) {
           )}
           {section === "access" && (
             <AccessControl
+              userId={props.userId}
               pendingUsers={props.pendingUsers}
               companies={props.companies}
+              people={props.people}
             />
           )}
           {section === "cycles" && (
@@ -384,9 +401,11 @@ const roleOptions = [
 ];
 
 function AccessControl({
+  userId,
   pendingUsers,
   companies,
-}: Pick<Props, "pendingUsers" | "companies">) {
+  people,
+}: Pick<Props, "userId" | "pendingUsers" | "companies" | "people">) {
   return (
     <div>
       <div className="mb-7">
@@ -450,18 +469,7 @@ function AccessControl({
                           </option>
                         ))}
                       </select>
-                      <select
-                        name="role"
-                        required
-                        defaultValue="client"
-                        className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs"
-                      >
-                        {roleOptions.map((role) => (
-                          <option key={role.value} value={role.value}>
-                            {role.label}
-                          </option>
-                        ))}
-                      </select>
+                      <RoleCheckboxes defaults={["client"]} compact />
                       <Button
                         size="sm"
                         className="bg-emerald-700 hover:bg-[#1D4B3B]"
@@ -505,8 +513,8 @@ function AccessControl({
             </span>
             <CardTitle className="text-base">Create a managed user</CardTitle>
             <CardDescription>
-              Set company and permissions immediately. Share the initial
-              password securely.
+              Assign one or more roles. A private, one-time password setup link
+              is sent directly to the user.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -532,18 +540,6 @@ function AccessControl({
                 />
               </label>
               <label className="block text-[11px] font-semibold text-slate-600">
-                Initial password
-                <Input
-                  name="password"
-                  type="password"
-                  required
-                  minLength={10}
-                  className="mt-1"
-                  placeholder="At least 10 characters"
-                  autoComplete="new-password"
-                />
-              </label>
-              <label className="block text-[11px] font-semibold text-slate-600">
                 Company
                 <select
                   name="companyId"
@@ -557,21 +553,10 @@ function AccessControl({
                   ))}
                 </select>
               </label>
-              <label className="block text-[11px] font-semibold text-slate-600">
-                Workspace role
-                <select
-                  name="role"
-                  required
-                  defaultValue="developer"
-                  className="mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
-                >
-                  {roleOptions.map((role) => (
-                    <option key={role.value} value={role.value}>
-                      {role.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <fieldset>
+                <legend className="text-[11px] font-semibold text-slate-600">Workspace roles</legend>
+                <RoleCheckboxes defaults={["developer"]} />
+              </fieldset>
               <Button className="mt-2 w-full bg-[#1D4B3B] hover:bg-emerald-500">
                 <UserPlus />
                 Create user
@@ -580,6 +565,61 @@ function AccessControl({
           </CardContent>
         </Card>
       </div>
+      <section className="mt-8">
+        <div className="mb-4 flex items-end justify-between">
+          <div>
+            <h3 className="text-sm font-semibold">Lumetha people</h3>
+            <p className="mt-1 text-xs text-slate-500">Edit identity, company, and any combination of roles. Passwords are never displayed or required here.</p>
+          </div>
+          <span className="text-xs text-slate-500">{people.length} people</span>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          {people.map((person) => {
+            const roles = person.roleAssignments.length ? person.roleAssignments.map(({ role }) => role) : [person.role];
+            const membership = person.companyMemberships[0];
+            return (
+              <Card key={person.id} className="rounded-2xl shadow-none">
+                <CardContent className="p-5">
+                  <form action={updateWorkspaceUser} className="space-y-3">
+                    <input type="hidden" name="userId" value={person.id} />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Input name="name" required minLength={2} defaultValue={person.name ?? ""} aria-label="Full name" />
+                      <Input name="email" type="email" required defaultValue={person.email ?? ""} aria-label="Work email" />
+                    </div>
+                    <select name="companyId" required defaultValue={membership?.companyId} className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
+                      {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
+                    </select>
+                    <RoleCheckboxes defaults={roles} />
+                    <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+                      <Button size="sm" className="bg-[#1D4B3B] hover:bg-emerald-700">Save changes</Button>
+                      {!person.hasPassword && <span className="text-[10px] font-medium text-amber-700">{person.setupEmailSent ? "Setup email sent" : "Email not delivered — configure Resend or retry"}</span>}
+                    </div>
+                  </form>
+                  <div className="mt-2 flex gap-2">
+                    <form action={resendAccountSetup}><input type="hidden" name="userId" value={person.id} /><Button size="sm" variant="outline">Send setup link</Button></form>
+                    {person.id !== userId && person.email !== "lumethaadmin@lumetha.lu" && (
+                      <form action={removeWorkspaceUser}><input type="hidden" name="userId" value={person.id} /><Button size="sm" variant="outline" className="border-rose-200 text-rose-700">Remove access</Button></form>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function RoleCheckboxes({ defaults, compact = false }: { defaults: string[]; compact?: boolean }) {
+  return (
+    <div className={`grid gap-2 ${compact ? "grid-cols-2" : "mt-2 grid-cols-2 sm:grid-cols-3"}`}>
+      {roleOptions.map((role) => (
+        <label key={role.value} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-2 text-[11px] font-medium text-slate-700">
+          <input type="checkbox" name="roles" value={role.value} defaultChecked={defaults.includes(role.value)} className="accent-[#1D4B3B]" />
+          {role.label}
+        </label>
+      ))}
     </div>
   );
 }

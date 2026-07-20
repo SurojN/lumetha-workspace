@@ -30,7 +30,7 @@ export async function login(_: AuthState, formData: FormData): Promise<AuthState
   const parsed = credentials.safeParse({ email: formData.get("email"), password: formData.get("password") });
   if (!parsed.success) return { error: "Enter a valid email and password." };
   const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
-  if (!user?.password || !(await bcrypt.compare(parsed.data.password, user.password))) {
+  if (!user?.password || user.disabledAt || !(await bcrypt.compare(parsed.data.password, user.password))) {
     return { error: "Email or password is incorrect." };
   }
   await createSession(user.id);

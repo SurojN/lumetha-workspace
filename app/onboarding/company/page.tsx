@@ -1,10 +1,11 @@
 import { createCompany } from "@/app/actions/company";
 import { requireUser } from "@/lib/auth";
+import { userHasRole } from "@/lib/roles";
 import { redirect } from "next/navigation";
 
 export default async function CompanyOnboarding() {
   const user = await requireUser();
-  if (user.role !== "admin") redirect("/access-pending");
+  if (!(await userHasRole(user.id, ["admin"], user.role))) redirect("/access-pending");
   return (
     <main className="grid min-h-screen place-items-center bg-slate-50 p-5">
       <form

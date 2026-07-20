@@ -70,6 +70,7 @@ model User {
   password      String?
   image         String?
   role          UserRole  @default(pending)
+  disabledAt    DateTime?
 
   accounts             Account[]             @relation("accounts")
   sessions             Session[]
@@ -84,9 +85,35 @@ model User {
   ownedCompanies       Company[]             @relation("companyOwner")
   requirementDocuments RequirementDocument[] @relation("documentAuthor")
   auditEvents          AuditEvent[]          @relation("auditActor")
+  roleAssignments      UserRoleAssignment[]
+  accountSetupTokens   AccountSetupToken[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model UserRoleAssignment {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      UserRole
+  createdAt DateTime @default(now())
+
+  @@unique([userId, role])
+  @@index([role])
+}
+
+model AccountSetupToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  sentAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, expiresAt])
 }
 
 model DeliveryCycle {

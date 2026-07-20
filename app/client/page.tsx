@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { userHasRole } from "@/lib/roles";
 import { ClientDashboard } from "@/components/client/client-dashboard";
 
 export default async function ClientPage() {
   const user = await requireUser();
-  if (user.role !== "client") redirect("/access-pending");
+  if (!(await userHasRole(user.id, ["client"], user.role))) redirect("/access-pending");
   const membership = await prisma.companyMember.findFirst({ where: { userId: user.id }, include: { company: { include: { projects: { select: { id: true, name: true }, take: 1 } } } } });
   if (!membership || !membership.company.projects[0]) redirect("/access-pending");
   const project = membership.company.projects[0];

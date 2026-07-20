@@ -12,6 +12,11 @@ try {
     update: { name: "Lumetha Admin", password: passwordHash, role: "admin" },
     create: { name: "Lumetha Admin", email, password: passwordHash, role: "admin" },
   });
+  await prisma.userRoleAssignment.upsert({
+    where: { userId_role: { userId: admin.id, role: "admin" } },
+    update: {},
+    create: { userId: admin.id, role: "admin" },
+  });
   const company = await prisma.company.upsert({
     where: { slug: "lumetha" },
     update: { ownerId: admin.id, emailDomain: "lumetha.lu" },

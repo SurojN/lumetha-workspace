@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { getCurrentUser, requireCompanyMembership } from "@/lib/auth";
 import { canTransition, taskUpdateSchema, type DaybreakStatus } from "@/lib/daybreak";
 import { Prisma } from "@prisma/client";
+import { rolesForUser } from "@/lib/roles";
 
 interface RouteContext {
   params: Promise<{
@@ -57,15 +58,16 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     const existing = await prisma.task.findUnique({ where: { id }, include: { project: { select: { companyId: true } } } });
     if (!existing) return NextResponse.json({ error: "Task not found" }, { status: 404 });
     const { user, membership } = await requireCompanyMembership(existing.project.companyId);
-    if (user.role === "client") return NextResponse.json({ error: "Clients cannot update delivery tasks" }, { status: 403 });
-    if (user.role === "developer" && existing.assigneeId !== user.id) return NextResponse.json({ error: "Developers can only update assigned tasks" }, { status: 403 });
+    const roles = await rolesForUser(user.id, user.role);
+    if (roles.includes("client") && roles.length === 1) return NextResponse.json({ error: "Clients cannot update delivery tasks" }, { status: 403 });
+    if (roles.includes("developer") && !roles.includes("senior_engineer") && existing.assigneeId !== user.id) return NextResponse.json({ error: "Developers can only update assigned tasks" }, { status: 403 });
 
     if (body.status && !canTransition(existing.status as DaybreakStatus, body.status)) {
       return NextResponse.json({ error: `Invalid lifecycle transition: ${existing.status} → ${body.status}` }, { status: 409 });
     }
 
     if (body.status === "dawn_shipped") {
-      const isSenior = user.role === "senior_engineer" || user.role === "admin" || membership.role === "company_admin";
+      const isSenior = roles.includes("senior_engineer") || roles.includes("admin") || membership.role === "company_admin";
       if (!isSenior) return NextResponse.json({ error: "Only a senior reviewer can ship work" }, { status: 403 });
       const checklist = body.reviewChecklist;
       const summary = body.technicalSummary ?? existing.technicalSummary;

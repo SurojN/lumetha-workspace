@@ -4,6 +4,7 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { userHasRole } from "@/lib/roles";
 
 const companySchema = z.object({
   name: z.string().trim().min(2).max(80),
@@ -12,7 +13,7 @@ const companySchema = z.object({
 
 export async function createCompany(formData: FormData) {
   const user = await requireUser();
-  if (user.role !== "admin") redirect("/access-pending");
+  if (!(await userHasRole(user.id, ["admin"], user.role))) redirect("/access-pending");
   const parsed = companySchema.safeParse({ name: formData.get("name"), emailDomain: formData.get("emailDomain") });
   if (!parsed.success) redirect("/onboarding/company?error=invalid");
   const baseSlug = parsed.data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "company";
