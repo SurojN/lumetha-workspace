@@ -27,6 +27,13 @@ enum TaskStatus {
   dawn_shipped
 }
 
+enum CycleStatus {
+  intake_open
+  scope_locked
+  in_sprint
+  dawn_delivery
+}
+
 // ===== AUTH =====
 model Account {
   id                String  @id @default(cuid())
@@ -76,19 +83,27 @@ model User {
   companyMemberships   CompanyMember[]
   ownedCompanies       Company[]             @relation("companyOwner")
   requirementDocuments RequirementDocument[] @relation("documentAuthor")
+  auditEvents          AuditEvent[]          @relation("auditActor")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model DeliveryCycle {
-  id        String   @id @default(cuid())
-  date      DateTime @unique @db.Date
-  isActive  Boolean  @default(true)
-  tasks     Task[]
-  createdAt DateTime @default(now())
+  id            String       @id @default(cuid())
+  date          DateTime     @db.Date
+  isActive      Boolean      @default(true)
+  status        CycleStatus  @default(intake_open)
+  scopeLockedAt DateTime?
+  projectId     String?
+  project       Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks         Task[]
+  auditEvents   AuditEvent[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   @@index([isActive])
+  @@index([projectId, date])
 }
 
 // ===== COMPANIES & ACCESS =====
@@ -103,6 +118,7 @@ model Company {
   projects             Project[]
   requirementDocuments RequirementDocument[]
   billingRecords       BillingRecord[]
+  capacityLimit        Int                   @default(12)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -166,11 +182,12 @@ model Project {
   category String?
   isPublic Boolean @default(false)
 
-  members    ProjectMember[]
-  boards     Board[]
-  sprints    Sprint[]
-  tasks      Task[]
-  activities Activity[]
+  members        ProjectMember[]
+  boards         Board[]
+  sprints        Sprint[]
+  tasks          Task[]
+  activities     Activity[]
+  deliveryCycles DeliveryCycle[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -269,6 +286,9 @@ model Task {
   reviewedAt      DateTime?
   deploymentUrl   String?
   repositoryUrl   String?
+  clientDecision  String?
+  clientFeedback  Json?
+  approvedAt      DateTime?
 
   cycleId String?
   cycle   DeliveryCycle? @relation(fields: [cycleId], references: [id], onDelete: Cascade)
@@ -280,6 +300,7 @@ model Task {
   activities  Activity[]
   subtasks    Subtask[]
   attachments Attachment[]
+  auditEvents AuditEvent[]
 
   order Int?
 
@@ -288,6 +309,22 @@ model Task {
 
   @@unique([projectId, key])
   @@index([cycleId, status])
+}
+
+model AuditEvent {
+  id        String         @id @default(cuid())
+  cycleId   String?
+  cycle     DeliveryCycle? @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  taskId    String?
+  task      Task?          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actorId   String
+  actor     User           @relation("auditActor", fields: [actorId], references: [id], onDelete: Restrict)
+  action    String
+  details   Json?
+  createdAt DateTime       @default(now())
+
+  @@index([cycleId, createdAt])
+  @@index([taskId, createdAt])
 }
 
 model Subtask {

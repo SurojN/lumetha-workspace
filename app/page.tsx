@@ -10,7 +10,9 @@ export default async function Home() {
     include: { company: { include: { projects: { select: { id: true }, orderBy: { createdAt: "asc" }, take: 1 } } } },
   });
   if (user.role === "pending" || !membership) redirect("/access-pending");
-  const canReview = user.role === "senior_engineer" || user.role === "admin" || membership?.role === "company_admin";
+  if (user.role === "admin") redirect("/admin");
+  if (user.role === "client") redirect("/client");
+  const canReview = user.role === "senior_engineer" || membership?.role === "company_admin";
   const workspaceRole = membership?.role === "company_admin" ? "admin" : user.role;
   return <LumethaWorkspace userName={user.name ?? user.email ?? "Workspace admin"} companyId={membership?.company.id} projectId={membership?.company.projects[0]?.id} companyName={membership?.company.name} companyDomain={membership?.company.emailDomain} canReview={canReview} role={workspaceRole} />;
 }
