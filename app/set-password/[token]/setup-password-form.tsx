@@ -6,7 +6,7 @@ import { setAccountPassword, type SetPasswordState } from "./actions";
 export function SetupPasswordForm({ token }: { token: string }) {
   const [state, action, pending] = useActionState<SetPasswordState, FormData>(setAccountPassword, undefined);
   return (
-    <form action={action} className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+    <form action={action} className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
       <input type="hidden" name="token" value={token} />
       <div className="mb-6 grid h-10 w-10 place-items-center rounded-xl bg-[#1D4B3B] font-bold text-white">L</div>
       <h1 className="text-2xl font-semibold text-slate-900">Set your private password</h1>

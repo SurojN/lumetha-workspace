@@ -4,6 +4,7 @@ import { getCurrentUser, requireCompanyMembership } from "@/lib/auth";
 import { canTransition, taskUpdateSchema, type DaybreakStatus } from "@/lib/daybreak";
 import { Prisma } from "@prisma/client";
 import { rolesForUser } from "@/lib/roles";
+import { notifyTaskParticipants } from "@/lib/notifications";
 
 interface RouteContext {
   params: Promise<{
@@ -28,6 +29,8 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
         },
         subtasks: true,
         attachments: true,
+        pullRequests: { orderBy: { updatedAt: "desc" } },
+        timeEntries: { orderBy: { startedAt: "desc" }, take: 100 },
       },
     });
 
@@ -78,18 +81,45 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       }
     }
 
-    const task = await prisma.task.update({
-      where: { id },
-      data: {
-        ...body,
-        reviewChecklist: body.reviewChecklist as Prisma.InputJsonValue | undefined,
-        reviewerId: body.status === "dawn_shipped" ? user.id : body.reviewerId,
-        reviewedAt: body.status === "dawn_shipped" ? new Date() : undefined,
-      },
-      include: {
-        creator: true,
-        assignee: true,
-      },
+    const task = await prisma.$transaction(async (tx) => {
+      const updated = await tx.task.update({
+        where: { id },
+        data: {
+          ...body,
+          reviewChecklist: body.reviewChecklist as Prisma.InputJsonValue | undefined,
+          reviewerId: body.status === "dawn_shipped" ? user.id : body.reviewerId,
+          reviewedAt: body.status === "dawn_shipped" ? new Date() : undefined,
+        },
+        include: {
+          creator: true,
+          assignee: true,
+          attachments: true,
+          pullRequests: { orderBy: { updatedAt: "desc" }, take: 5 },
+        },
+      });
+      await tx.auditEvent.create({
+        data: {
+          actorId: user.id,
+          taskId: id,
+          cycleId: existing.cycleId,
+          action: body.status && body.status !== existing.status
+            ? `task.transitioned.${existing.status}.to.${body.status}`
+            : "task.updated",
+          details: {
+            fields: Object.keys(body),
+            previousStatus: existing.status,
+            status: updated.status,
+          },
+        },
+      });
+      await notifyTaskParticipants(tx, id, user.id, {
+        type: body.status && body.status !== existing.status ? "task.transition" : "task.update",
+        title: body.status && body.status !== existing.status ? `${updated.key} moved to ${body.status.replaceAll("_", " ")}` : `${updated.key} was updated`,
+        message: body.status && body.status !== existing.status
+          ? `${user.name ?? user.email ?? "A teammate"} advanced “${updated.title}”.`
+          : `${user.name ?? user.email ?? "A teammate"} updated “${updated.title}”.`,
+      });
+      return updated;
     });
 
     return NextResponse.json(task);

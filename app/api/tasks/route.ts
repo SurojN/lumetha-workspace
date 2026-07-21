@@ -18,6 +18,8 @@ export async function GET() {
       include: {
         creator: true,
         assignee: true,
+        attachments: true,
+        pullRequests: { orderBy: { updatedAt: "desc" }, take: 5 },
       },
     });
 

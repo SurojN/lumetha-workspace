@@ -103,7 +103,7 @@ export function ClientDashboard(props: Props) {
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex h-dvh w-72 flex-col overflow-hidden border-r border-emerald-700 bg-[#1D4B3B] text-white transition-transform lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-40 flex h-dvh w-[min(18rem,88vw)] flex-col overflow-hidden border-r border-emerald-700 bg-[#1D4B3B] text-white transition-transform lg:w-72 lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex h-20 shrink-0 items-center gap-3 border-b border-white/15 px-6">
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-white/15 text-white">
@@ -131,7 +131,7 @@ export function ClientDashboard(props: Props) {
             {props.project.name}
           </p>
         </div>
-        <nav className="min-h-0 flex-1 overflow-hidden p-3">
+        <nav className="min-h-0 flex-1 overflow-y-auto p-3">
           {nav.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -172,7 +172,7 @@ export function ClientDashboard(props: Props) {
         </div>
       </aside>
       <div className="min-h-dvh lg:pl-72">
-        <header className="sticky top-0 z-20 flex h-20 items-center border-b border-slate-200 bg-white/90 px-5 backdrop-blur sm:px-8">
+        <header className="sticky top-0 z-20 flex h-20 items-center border-b border-slate-200 bg-white/90 px-3 backdrop-blur sm:px-8">
           <button
             onClick={() => setMobileOpen(true)}
             className="mr-3 rounded-lg border p-2 lg:hidden"
@@ -188,7 +188,7 @@ export function ClientDashboard(props: Props) {
             </h1>
           </div>
           <div
-            className={`ml-auto flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium ${props.activeCycle ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"}`}
+            className={`ml-auto hidden items-center gap-2 rounded-full px-3 py-2 text-xs font-medium sm:flex ${props.activeCycle ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"}`}
           >
             <CircleDot className="h-3.5 w-3.5" />
             {props.activeCycle
@@ -196,7 +196,7 @@ export function ClientDashboard(props: Props) {
               : "Intake unavailable"}
           </div>
         </header>
-        <div className="mx-auto max-w-[1450px] p-5 sm:p-8">
+        <div className="mx-auto max-w-[1450px] p-3 sm:p-8">
           {section === "overview" && (
             <ClientOverview {...props} onNavigate={setSection} />
           )}
@@ -709,13 +709,13 @@ function DecisionModal({ task, onClose }: { task: Task; onClose: () => void }) {
   const [decision, setDecision] = useState<"approved" | "rejected">("approved");
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-950/45 p-3 backdrop-blur-sm sm:p-4"
       onMouseDown={onClose}
     >
       <Card
         role="dialog"
         aria-modal="true"
-        className="w-full max-w-xl rounded-2xl"
+        className="max-h-[calc(100dvh-1.5rem)] w-full max-w-xl overflow-y-auto rounded-2xl"
         onMouseDown={(e) => e.stopPropagation()}
       >
         <CardHeader>
@@ -735,7 +735,7 @@ function DecisionModal({ task, onClose }: { task: Task; onClose: () => void }) {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             <button
               onClick={() => setDecision("approved")}
               className={`rounded-xl border p-3 text-left ${decision === "approved" ? "border-emerald-500 bg-emerald-50" : "border-slate-200"}`}

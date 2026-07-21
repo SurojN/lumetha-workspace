@@ -15,7 +15,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     <main className="grid min-h-screen place-items-center bg-slate-50 p-5">
       <form
         action={formAction}
-        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm"
+        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8"
       >
         <div className="mb-7">
           <div className="mb-4 grid h-10 w-10 place-items-center rounded-xl bg-[#1D4B3B] font-bold text-white">

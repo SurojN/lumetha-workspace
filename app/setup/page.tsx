@@ -152,7 +152,7 @@ NEXTAUTH_URL="http://localhost:3000"`}
             <h2 className="text-2xl font-bold text-slate-900">
               Tech Stack
             </h2>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="bg-white rounded-lg p-4">
                 <h3 className="font-semibold text-slate-900 mb-2">
                   Frontend
@@ -211,4 +211,3 @@ NEXTAUTH_URL="http://localhost:3000"`}
     </div>
   );
 }
-

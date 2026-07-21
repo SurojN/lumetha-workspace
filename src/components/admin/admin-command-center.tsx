@@ -148,7 +148,7 @@ export function AdminCommandCenter(props: Props) {
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex h-dvh w-72 flex-col overflow-hidden border-r border-emerald-700 bg-[#1D4B3B] text-white transition-transform lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-40 flex h-dvh w-[min(18rem,88vw)] flex-col overflow-hidden border-r border-emerald-700 bg-[#1D4B3B] text-white transition-transform lg:w-72 lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex h-20 shrink-0 items-center gap-3 border-b border-white/15 px-6">
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-white/15 text-white">
@@ -167,7 +167,7 @@ export function AdminCommandCenter(props: Props) {
             <X className="h-5 w-5" />
           </button>
         </div>
-        <nav className="min-h-0 flex-1 overflow-hidden px-3 py-6">
+        <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:py-6">
           {nav.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -215,7 +215,7 @@ export function AdminCommandCenter(props: Props) {
         </div>
       </aside>
       <div className="min-h-dvh lg:pl-72">
-        <header className="sticky top-0 z-20 flex h-20 items-center border-b border-slate-200 bg-white/90 px-5 backdrop-blur sm:px-8">
+        <header className="sticky top-0 z-20 flex h-20 items-center border-b border-slate-200 bg-white/90 px-3 backdrop-blur sm:px-8">
           <button
             onClick={() => setMobileOpen(true)}
             className="mr-3 rounded-lg border p-2 lg:hidden"
@@ -230,12 +230,12 @@ export function AdminCommandCenter(props: Props) {
               {nav.find((item) => item.id === section)?.label}
             </h1>
           </div>
-          <div className="ml-auto flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
+          <div className="ml-auto hidden items-center gap-2 rounded-full bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800 sm:flex">
             <span className="h-2 w-2 rounded-full bg-emerald-500" />
             Live · all systems
           </div>
         </header>
-        <div className="mx-auto max-w-[1500px] p-5 sm:p-8">
+        <div className="mx-auto max-w-[1500px] p-3 sm:p-8">
           {section === "overview" && (
             <Overview
               {...props}
@@ -622,7 +622,7 @@ function PeopleDirectory({ people, companies, currentUserId }: { people: Props["
                   <td className="px-4 py-4"><div className="flex max-w-xs flex-wrap gap-1">{roles.map((role) => <span key={role} className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-800">{roleOptions.find((item) => item.value === role)?.label ?? role}</span>)}</div></td>
                   <td className="px-4 py-4"><span className={`text-xs font-medium ${person.hasPassword ? "text-emerald-700" : "text-amber-700"}`}>{person.hasPassword ? "Active" : person.setupEmailSent ? "Invite sent" : "Invite pending"}</span></td>
                   <td className="px-5 py-3 text-right">
-                    <details className="group inline-block text-left"><summary className="cursor-pointer list-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold hover:border-emerald-300">Edit</summary><div className="mt-2 w-[420px] rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm">
+                    <details className="group inline-block text-left"><summary className="cursor-pointer list-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold hover:border-emerald-300">Edit</summary><div className="mt-2 w-[min(420px,calc(100vw-2rem))] rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm sm:p-5">
                       <form action={updateWorkspaceUser} className="space-y-3"><input type="hidden" name="userId" value={person.id} /><div className="grid gap-3 sm:grid-cols-2"><Input name="name" required minLength={2} defaultValue={person.name ?? ""} aria-label="Full name" /><Input name="email" type="email" required defaultValue={person.email ?? ""} aria-label="Work email" /></div><select name="companyId" required defaultValue={membership?.companyId} className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select><RoleCheckboxes defaults={roles} /><Button size="sm" className="bg-[#1D4B3B] text-white hover:bg-emerald-700 hover:text-white">Save changes</Button></form>
                       <div className="mt-3 flex gap-2 border-t border-slate-100 pt-3"><form action={resendAccountSetup}><input type="hidden" name="userId" value={person.id} /><Button size="sm" variant="outline">Send setup link</Button></form>{person.id !== currentUserId && person.email !== "lumethaadmin@lumetha.lu" && <form action={removeWorkspaceUser}><input type="hidden" name="userId" value={person.id} /><Button size="sm" variant="outline" className="border-rose-200 text-rose-700">Remove access</Button></form>}</div>
                     </div></details>

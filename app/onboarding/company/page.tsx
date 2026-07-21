@@ -10,7 +10,7 @@ export default async function CompanyOnboarding() {
     <main className="grid min-h-screen place-items-center bg-slate-50 p-5">
       <form
         action={createCompany}
-        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm"
+        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8"
       >
         <h1 className="text-2xl font-semibold">Set up a client company</h1>
         <p className="mt-2 text-sm text-slate-500">

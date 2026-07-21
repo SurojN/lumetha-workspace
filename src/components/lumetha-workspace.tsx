@@ -49,11 +49,39 @@ type WorkItem = {
   tags: string[];
   assignee?: string;
   attachments: string[];
+  attachmentRecords?: { id: string; name: string; size: number | null }[];
   checklist: { title: string; done: boolean }[];
   summary?: string;
   repositoryUrl?: string;
   deploymentUrl?: string;
   review?: Checklist;
+};
+
+type ApiTask = {
+  id: string;
+  key: string;
+  title: string;
+  rawBrief: string;
+  description: string | null;
+  status: DaybreakStatus;
+  priority: "low" | "medium" | "high" | "critical";
+  aiParsedChecklist: unknown;
+  technicalSummary: string | null;
+  repositoryUrl: string | null;
+  deploymentUrl: string | null;
+  reviewChecklist: unknown;
+  assignee: { name: string | null; email: string | null } | null;
+  attachments?: { id: string; name: string; size: number | null }[];
+  pullRequests?: { pullNumber: number; repository: string; state: string; isDraft: boolean }[];
+};
+
+type WorkspaceNotification = {
+  id: string;
+  title: string;
+  message: string;
+  readAt: string | null;
+  createdAt: string;
+  task: { key: string; title: string } | null;
 };
 
 const stages: {
@@ -98,72 +126,56 @@ const stages: {
   },
 ];
 
-const seed: WorkItem[] = [
-  {
-    id: "1",
-    key: "DAY-024",
-    title: "Add usage analytics dashboard",
-    brief:
-      "Give workspace admins a clear weekly view of active users and projects.",
-    status: "in_progress",
-    priority: "High",
-    tags: ["Frontend", "Analytics"],
-    assignee: "AK",
-    attachments: ["analytics-wireframe.fig"],
-    checklist: [
-      { title: "Build metric cards and trend chart", done: true },
-      { title: "Connect weekly aggregation endpoint", done: false },
-      { title: "Add empty and loading states", done: false },
-    ],
-  },
-  {
-    id: "2",
-    key: "DAY-023",
-    title: "Improve team invitation flow",
-    brief:
-      "Let admins resend invitations and make expired invite states obvious.",
-    status: "pending_senior_review",
-    priority: "Normal",
-    tags: ["Full stack"],
-    assignee: "NR",
-    attachments: [],
-    checklist: [
-      { title: "Validate invite tokens", done: true },
-      { title: "Add resend action", done: true },
-      { title: "Cover expiry edge cases", done: true },
-    ],
-    summary:
-      "Added expiry-aware invitation states, a rate-limited resend action, and regression coverage.",
-    repositoryUrl: "https://github.com/lumetha/workspace/pull/23",
-    deploymentUrl: "https://day-023.lumetha.dev",
-    review: {
-      acceptanceCriteria: false,
-      testsPassing: false,
-      securityReviewed: false,
-    },
-  },
-  {
-    id: "3",
-    key: "DAY-021",
-    title: "Ship billing settings refresh",
-    brief: "Simplify plan details and invoice access.",
-    status: "dawn_shipped",
-    priority: "Normal",
-    tags: ["Frontend"],
-    assignee: "SM",
-    attachments: [],
-    checklist: [{ title: "Refresh settings UI", done: true }],
-    summary: "Refreshed billing settings and verified invoice downloads.",
-    deploymentUrl: "https://day-021.lumetha.dev",
-    review: {
-      acceptanceCriteria: true,
-      testsPassing: true,
-      securityReviewed: true,
-    },
-  },
-];
+const isReview = (value: unknown): value is Checklist => {
+  if (!value || typeof value !== "object") return false;
+  const review = value as Record<string, unknown>;
+  return ["acceptanceCriteria", "testsPassing", "securityReviewed"].every(
+    (key) => typeof review[key] === "boolean",
+  );
+};
 
-const storageKey = "lumetha-daybreak-v2";
+const toWorkItem = (task: ApiTask): WorkItem => {
+  const parsed = Array.isArray(task.aiParsedChecklist)
+    ? task.aiParsedChecklist
+        .map((entry) => {
+          if (!entry || typeof entry !== "object") return null;
+          const item = entry as Record<string, unknown>;
+          const title = item.title ?? item.description;
+          return typeof title === "string" ? { title, done: false } : null;
+        })
+        .filter((entry): entry is { title: string; done: boolean } => Boolean(entry))
+    : [];
+  const assigneeName = task.assignee?.name ?? task.assignee?.email;
+  return {
+    id: task.id,
+    key: task.key,
+    title: task.title,
+    brief: task.rawBrief || task.description || "No brief supplied.",
+    status: task.status,
+    priority:
+      task.priority === "critical"
+        ? "Urgent"
+        : task.priority === "high"
+          ? "High"
+          : "Normal",
+    tags: task.pullRequests?.length
+      ? ["Delivery task", `PR ${task.pullRequests[0].state}`]
+      : ["Delivery task"],
+    assignee: assigneeName
+      ?.split(/\s+/)
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase(),
+    attachments: task.attachments?.map((attachment) => attachment.name) ?? [],
+    attachmentRecords: task.attachments,
+    checklist: parsed,
+    summary: task.technicalSummary ?? undefined,
+    repositoryUrl: task.repositoryUrl ?? undefined,
+    deploymentUrl: task.deploymentUrl ?? undefined,
+    review: isReview(task.reviewChecklist) ? task.reviewChecklist : undefined,
+  };
+};
 const nextStatus: Partial<Record<DaybreakStatus, DaybreakStatus>> = {
   dusk_intake: "in_progress",
   in_progress: "pending_senior_review",
@@ -191,31 +203,77 @@ export function LumethaWorkspace({
     | "senior_engineer"
     | "admin";
 }) {
-  const [items, setItems] = useState<WorkItem[]>(seed);
-  const [hydrated, setHydrated] = useState(false);
+  const [items, setItems] = useState<WorkItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState("");
+  const [notifications, setNotifications] = useState<WorkspaceNotification[]>([]);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [composer, setComposer] = useState(false);
   const [selected, setSelected] = useState<WorkItem | null>(null);
   const [menu, setMenu] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [view, setView] = useState<"board" | "shipped">("board");
 
   useEffect(() => {
-    let savedItems: WorkItem[] | undefined;
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) savedItems = JSON.parse(saved) as WorkItem[];
-    } catch {
-      localStorage.removeItem(storageKey);
-    }
-    const frame = requestAnimationFrame(() => {
-      if (savedItems) setItems(savedItems);
-      setHydrated(true);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, []);
+    let active = true;
+    const loadTasks = async (quiet = false) => {
+      if (!quiet) setLoading(true);
+      try {
+        const response = await fetch(
+          projectId ? `/api/projects/${projectId}/tasks` : "/api/tasks",
+        );
+        const body = (await response.json()) as ApiTask[] | { error?: string };
+        if (!response.ok || !Array.isArray(body)) {
+          throw new Error(!Array.isArray(body) ? body.error : undefined);
+        }
+        if (active) setItems(body.map(toWorkItem));
+      } catch (error) {
+        if (active)
+          setNotice(
+            error instanceof Error && error.message
+              ? error.message
+              : "Unable to load this delivery board.",
+          );
+      } finally {
+        if (active && !quiet) setLoading(false);
+      }
+    };
+    void loadTasks();
+    const timer = window.setInterval(() => void loadTasks(true), 15_000);
+    const onFocus = () => void loadTasks(true);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [projectId]);
+
   useEffect(() => {
-    if (hydrated) localStorage.setItem(storageKey, JSON.stringify(items));
-  }, [hydrated, items]);
+    let active = true;
+    const loadNotifications = async () => {
+      const response = await fetch("/api/notifications");
+      if (!response.ok) return;
+      const body = (await response.json()) as WorkspaceNotification[];
+      if (active) setNotifications(body);
+    };
+    void loadNotifications();
+    const timer = window.setInterval(() => void loadNotifications(), 20_000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  const markNotificationsRead = async () => {
+    await fetch("/api/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ all: true }),
+    });
+    setNotifications((current) => current.map((entry) => ({ ...entry, readAt: entry.readAt ?? new Date().toISOString() })));
+  };
 
   const visible = useMemo(
     () =>
@@ -234,35 +292,62 @@ export function LumethaWorkspace({
       current?.id === id ? { ...current, ...patch } : current,
     );
   };
-  const advance = (item: WorkItem) => {
+  const advance = async (item: WorkItem) => {
     const target = nextStatus[item.status];
-    if (target) update(item.id, { status: target });
+    const status = target ?? (item.status === "pending_senior_review" ? "dawn_shipped" : undefined);
+    if (!status) return;
+    setNotice("Saving lifecycle update…");
+    const response = await fetch(`/api/tasks/${item.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status,
+        technicalSummary: item.summary || null,
+        repositoryUrl: item.repositoryUrl || null,
+        deploymentUrl: item.deploymentUrl || null,
+        ...(status === "dawn_shipped" ? { reviewChecklist: item.review } : {}),
+      }),
+    });
+    const body = (await response.json()) as ApiTask | { error?: string };
+    if (!response.ok || !("id" in body)) {
+      setNotice("error" in body && body.error ? body.error : "Unable to update task.");
+      return;
+    }
+    const saved = toWorkItem(body);
+    setItems((current) => current.map((entry) => (entry.id === saved.id ? saved : entry)));
+    setSelected(saved);
+    setNotice("Task updated for the whole workspace.");
   };
-  const add = (
+  const add = async (
     title: string,
     brief: string,
     priority: WorkItem["priority"],
     attachments: string[],
   ) => {
-    const number =
-      Math.max(
-        24,
-        ...items.map((item) => Number(item.key.split("-")[1]) || 0),
-      ) + 1;
-    setItems((current) => [
-      {
-        id: crypto.randomUUID(),
-        key: `DAY-${String(number).padStart(3, "0")}`,
+    if (!projectId) {
+      setNotice("Create a project before adding delivery work.");
+      return;
+    }
+    const number = Math.max(0, ...items.map((item) => Number(item.key.match(/(\d+)$/)?.[1]) || 0)) + 1;
+    const response = await fetch(`/api/projects/${projectId}/tasks`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         title,
-        brief,
-        status: "dusk_intake",
-        priority,
-        tags: ["New brief"],
-        attachments,
-        checklist: [],
-      },
-      ...current,
-    ]);
+        rawBrief: brief,
+        key: `DAY-${String(number).padStart(3, "0")}`,
+        priority: priority === "Urgent" ? "critical" : priority.toLowerCase(),
+        type: "task",
+      }),
+    });
+    const body = (await response.json()) as ApiTask | { error?: string };
+    if (!response.ok || !("id" in body)) {
+      setNotice("error" in body && body.error ? body.error : "Unable to create task.");
+      return;
+    }
+    setItems((current) => [toWorkItem(body), ...current]);
+    if (attachments.length) setNotice("Task saved. File uploads are not enabled yet; add links in the brief.");
+    else setNotice("Task added to the shared Dusk Intake.");
     setComposer(false);
   };
   const initials = userName
@@ -292,6 +377,32 @@ export function LumethaWorkspace({
 
   return (
     <main className="min-h-screen bg-[#f7f8f6] text-[#17221d]">
+      {mobileNavOpen && (
+        <button
+          aria-label="Close navigation"
+          onClick={() => setMobileNavOpen(false)}
+          className="fixed inset-0 z-30 bg-slate-950/35 lg:hidden"
+        />
+      )}
+      <aside
+        aria-label="Mobile workspace navigation"
+        className={`fixed inset-y-0 left-0 z-40 flex h-dvh w-[min(18rem,88vw)] flex-col border-r border-emerald-700 bg-[#1D4B3B] text-white transition-transform lg:hidden ${mobileNavOpen ? "translate-x-0" : "-translate-x-full"}`}
+      >
+        <div className="flex h-[72px] shrink-0 items-center gap-3 border-b border-white/15 px-5">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-white/15"><Sunrise className="h-5 w-5" /></span>
+          <div><p className="font-semibold">Lumetha</p><p className="text-[11px] text-emerald-50/65">Daybreak workspace</p></div>
+          <button aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} className="ml-auto rounded-lg p-2 text-white/75"><X className="h-5 w-5" /></button>
+        </div>
+        <nav className="min-h-0 flex-1 overflow-y-auto p-3">
+          <p className="px-3 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[.14em] text-emerald-50/60">Overnight cycle</p>
+          <SideButton active={view === "board"} icon={LayoutGrid} label="Daybreak board" count={items.filter((item) => item.status !== "dawn_shipped").length} onClick={() => { setView("board"); setMobileNavOpen(false); }} />
+          <SideButton active={view === "shipped"} icon={Sunrise} label="Dawn archive" count={items.filter((item) => item.status === "dawn_shipped").length} onClick={() => { setView("shipped"); setMobileNavOpen(false); }} />
+          {canReview && <SideButton active={false} icon={ClipboardCheck} label="Review queue" count={items.filter((item) => item.status === "pending_senior_review").length} onClick={() => { setView("board"); setQuery(""); setMobileNavOpen(false); }} />}
+        </nav>
+        <form action={logout} className="shrink-0 border-t border-white/15 p-4">
+          <button className="flex w-full items-center gap-2 rounded-xl px-3 py-3 text-sm text-emerald-50/85 hover:bg-white/10"><LogOut className="h-4 w-4" />Sign out</button>
+        </form>
+      </aside>
       <div className="flex min-h-screen">
         <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col overflow-hidden border-r border-emerald-700 bg-[#1D4B3B] text-white lg:flex">
           <div className="flex h-[72px] items-center gap-3 border-b border-white/15 px-5">
@@ -303,7 +414,7 @@ export function LumethaWorkspace({
               <p className="text-[11px] text-[#78827c]">Daybreak workspace</p>
             </div>
           </div>
-          <nav className="min-h-0 flex-1 overflow-hidden p-3">
+          <nav className="min-h-0 flex-1 overflow-y-auto p-3">
             <p className="px-3 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[.14em] text-emerald-50/60">
               Overnight cycle
             </p>
@@ -372,10 +483,14 @@ export function LumethaWorkspace({
         </aside>
 
         <section className="min-w-0 flex-1">
-          <header className="flex h-[72px] items-center border-b border-[#e1e6e1] bg-white/90 px-4 backdrop-blur sm:px-7">
-            <span className="mr-3 grid h-9 w-9 place-items-center rounded-lg border border-[#e1e6e1] lg:hidden">
+          <header className="sticky top-0 z-20 flex h-[72px] items-center border-b border-[#e1e6e1] bg-white/90 px-3 backdrop-blur sm:px-7">
+            <button aria-label="Open navigation" onClick={() => setMobileNavOpen(true)} className="mr-2 grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-[#e1e6e1] lg:hidden">
               <Menu className="h-4 w-4" />
-            </span>
+            </button>
+            <div className="min-w-0 md:hidden">
+              <p className="truncate text-sm font-semibold">{view === "board" ? "Daybreak board" : "Dawn archive"}</p>
+              <p className="truncate text-[10px] text-[#7a857e]">{companyName ?? "Lumetha workspace"}</p>
+            </div>
             <div className="relative hidden w-80 md:block">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98a09b]" />
               <input
@@ -385,11 +500,40 @@ export function LumethaWorkspace({
                 className="h-10 w-full rounded-xl border border-[#e3e7e3] bg-[#f8f9f7] pl-9 pr-3 text-sm outline-none focus:border-[#7ca18e] focus:bg-white"
               />
             </div>
-            <div className="ml-auto flex items-center gap-2">
-              <span className="relative grid h-10 w-10 place-items-center rounded-xl text-[#647068]">
-                <Bell className="h-[18px] w-[18px]" />
-                <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-amber-500" />
-              </span>
+            <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+              <div className="relative">
+                <button
+                  aria-label="Open notifications"
+                  onClick={() => setNotificationsOpen((open) => !open)}
+                  className="relative grid h-10 w-10 place-items-center rounded-xl text-[#647068] hover:bg-[#f0f3ef]"
+                >
+                  <Bell className="h-[18px] w-[18px]" />
+                  {notifications.some((entry) => !entry.readAt) && <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-amber-500" />}
+                </button>
+                {notificationsOpen && (
+                  <div className="absolute right-0 top-12 z-30 w-[min(92vw,380px)] overflow-hidden rounded-2xl border border-[#dfe5e0] bg-white shadow-xl">
+                    <div className="flex items-center justify-between border-b border-[#edf0ed] px-4 py-3">
+                      <p className="text-sm font-semibold">Notifications</p>
+                      <button onClick={() => void markNotificationsRead()} className="text-[11px] font-medium text-emerald-700">Mark all read</button>
+                    </div>
+                    <div className="max-h-96 overflow-y-auto">
+                      {notifications.length ? notifications.map((entry) => (
+                        <button
+                          key={entry.id}
+                          onClick={() => {
+                            setNotificationsOpen(false);
+                            if (entry.task) setQuery(entry.task.key);
+                          }}
+                          className={`block w-full border-b border-[#f0f2f0] px-4 py-3 text-left last:border-0 ${entry.readAt ? "bg-white" : "bg-emerald-50/60"}`}
+                        >
+                          <p className="text-xs font-semibold text-[#26352d]">{entry.title}</p>
+                          <p className="mt-1 text-[11px] leading-5 text-[#667168]">{entry.message}</p>
+                        </button>
+                      )) : <p className="px-4 py-8 text-center text-xs text-[#7b877f]">No notifications yet.</p>}
+                    </div>
+                  </div>
+                )}
+              </div>
               {(role === "qa" || role === "project_manager") && (
                 <button
                   onClick={() => setComposer(true)}
@@ -403,7 +547,18 @@ export function LumethaWorkspace({
           </header>
 
           <div className="mx-auto max-w-[1680px] p-4 sm:p-7">
-            <div className="overflow-hidden rounded-2xl border border-[#dfe6e0] bg-[linear-gradient(135deg,#eef8f1,#deefe4)] px-5 py-5 text-slate-900 shadow-[0_12px_30px_rgba(22,59,44,.12)] sm:px-7">
+            <label className="relative mb-4 block md:hidden">
+              <span className="sr-only">Search delivery work</span>
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98a09b]" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search tonight’s work…" className="h-11 w-full rounded-xl border border-[#e1e6e1] bg-white pl-9 pr-3 text-sm outline-none focus:border-[#7ca18e]" />
+            </label>
+            {notice && (
+              <div role="status" className="mb-4 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-900">
+                <span>{notice}</span>
+                <button aria-label="Dismiss message" onClick={() => setNotice("")}><X className="h-4 w-4" /></button>
+              </div>
+            )}
+            <div className="overflow-hidden rounded-2xl border border-[#dfe6e0] bg-[linear-gradient(135deg,#eef8f1,#deefe4)] px-4 py-5 text-slate-900 shadow-[0_12px_30px_rgba(22,59,44,.12)] sm:px-7">
               <div className="flex flex-wrap items-center justify-between gap-5">
                 <div>
                   <div className="flex items-center gap-2 text-xs font-medium text-emerald-700">
@@ -420,7 +575,7 @@ export function LumethaWorkspace({
                     production-ready work.
                   </p>
                 </div>
-                <div className="flex items-center gap-6 rounded-xl border border-emerald-200 bg-white/70 px-5 py-3">
+                <div className="flex w-full items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-white/70 px-4 py-3 sm:w-auto sm:justify-start sm:gap-6 sm:px-5">
                   <div>
                     <p className="text-[10px] uppercase tracking-widest text-emerald-800/60">
                       Dawn handoff
@@ -465,7 +620,11 @@ export function LumethaWorkspace({
               </div>
             </div>
 
-            {view === "board" ? (
+            {loading ? (
+              <div className="mt-5 grid min-h-64 place-items-center rounded-2xl border border-[#dfe5e0] bg-white text-sm text-[#667168]">
+                Loading the shared delivery board…
+              </div>
+            ) : view === "board" ? (
               <div className="mt-5 grid gap-4 xl:grid-cols-4">
                 {stages.map((stage, index) => {
                   const columnItems = visible.filter(
@@ -540,6 +699,10 @@ export function LumethaWorkspace({
           onClose={() => setSelected(null)}
           onUpdate={(patch) => update(selected.id, patch)}
           onAdvance={() => advance(selected)}
+          onAttachment={(attachment) => update(selected.id, {
+            attachments: [...selected.attachments, attachment.name],
+            attachmentRecords: [...(selected.attachmentRecords ?? []), attachment],
+          })}
         />
       )}
     </main>
@@ -974,7 +1137,7 @@ function AdminPortal({
           {invoices.map((invoice) => (
             <div
               key={invoice.id}
-              className="grid grid-cols-4 items-center gap-3 border-b border-[#edf0ed] p-5 text-sm last:border-0"
+              className="grid grid-cols-2 items-center gap-3 border-b border-[#edf0ed] p-4 text-sm last:border-0 sm:grid-cols-4 sm:p-5"
             >
               <span className="font-mono text-xs">{invoice.id}</span>
               <span>{invoice.client}</span>
@@ -1093,7 +1256,7 @@ function WorkCard({
                 e.stopPropagation();
                 onAdvance();
               }}
-              className="ml-auto flex items-center gap-1 text-[10px] font-semibold text-[#3c7156] opacity-0 transition group-hover:opacity-100"
+              className="ml-auto flex min-h-9 items-center gap-1 rounded-lg px-2 text-[10px] font-semibold text-[#3c7156] opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
             >
               Advance <ArrowRight className="h-3 w-3" />
             </button>
@@ -1133,7 +1296,7 @@ function IntakeModal({
   const [files, setFiles] = useState<string[]>([]);
   return (
     <div
-      className="fixed inset-0 z-40 grid place-items-center bg-[#10251c]/40 p-4 backdrop-blur-[2px]"
+      className="fixed inset-0 z-40 grid place-items-center overflow-y-auto bg-[#10251c]/40 p-3 backdrop-blur-[2px] sm:p-4"
       onMouseDown={onClose}
     >
       <section
@@ -1141,7 +1304,7 @@ function IntakeModal({
         aria-modal="true"
         aria-labelledby="intake-title"
         onMouseDown={(e) => e.stopPropagation()}
-        className="w-full max-w-2xl rounded-2xl border border-white/50 bg-white p-6 shadow-2xl sm:p-7"
+        className="max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/50 bg-white p-4 shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:p-7"
       >
         <div className="flex items-start justify-between">
           <div className="flex gap-3">
@@ -1248,23 +1411,92 @@ function DetailDrawer({
   onClose,
   onUpdate,
   onAdvance,
+  onAttachment,
 }: {
   item: WorkItem;
   canReview: boolean;
   onClose: () => void;
   onUpdate: (patch: Partial<WorkItem>) => void;
   onAdvance: () => void;
+  onAttachment: (attachment: { id: string; name: string; size: number | null }) => void;
 }) {
-  const [tracking, setTracking] = useState(false);
+  const [activeEntry, setActiveEntry] = useState<{ id: string; startedAt: string } | null>(null);
   const [seconds, setSeconds] = useState(0);
+  const [trackedSeconds, setTrackedSeconds] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [drawerStatus, setDrawerStatus] = useState("");
+
   useEffect(() => {
-    if (!tracking) return;
-    const timer = window.setInterval(
-      () => setSeconds((current) => current + 1),
-      1000,
-    );
+    let active = true;
+    const load = async () => {
+      const response = await fetch(`/api/time-entries?taskId=${item.id}`);
+      if (!response.ok) return;
+      const entries = (await response.json()) as { id: string; startedAt: string; endedAt: string | null; durationSeconds: number | null }[];
+      if (!active) return;
+      setTrackedSeconds(entries.reduce((total, entry) => total + (entry.durationSeconds ?? 0), 0));
+      const running = entries.find((entry) => !entry.endedAt);
+      setActiveEntry(running ? { id: running.id, startedAt: running.startedAt } : null);
+    };
+    void load();
+    return () => { active = false; };
+  }, [item.id]);
+
+  useEffect(() => {
+    if (!activeEntry) return;
+    const tick = () => setSeconds(Math.max(0, Math.floor((Date.now() - new Date(activeEntry.startedAt).getTime()) / 1000)));
+    const timer = window.setInterval(tick, 1000);
     return () => window.clearInterval(timer);
-  }, [tracking]);
+  }, [activeEntry]);
+
+  const toggleTracking = async () => {
+    const response = await fetch("/api/time-entries", {
+      method: activeEntry ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(activeEntry ? { entryId: activeEntry.id } : { taskId: item.id }),
+    });
+    const body = (await response.json()) as { id?: string; startedAt?: string; durationSeconds?: number | null; error?: string };
+    if (!response.ok || !body.id) {
+      setDrawerStatus(body.error ?? "Unable to update the timer.");
+      return;
+    }
+    if (activeEntry) {
+      setTrackedSeconds((current) => current + (body.durationSeconds ?? seconds));
+      setActiveEntry(null);
+      setSeconds(0);
+      setDrawerStatus("Time entry saved.");
+    } else if (body.startedAt) {
+      setActiveEntry({ id: body.id, startedAt: body.startedAt });
+      setSeconds(0);
+      setDrawerStatus("Timer running. You can close this drawer safely.");
+    }
+  };
+
+  const uploadFile = async (file: File) => {
+    setUploading(true);
+    setDrawerStatus("Uploading securely…");
+    const data = new FormData();
+    data.set("file", file);
+    const response = await fetch(`/api/tasks/${item.id}/attachments`, { method: "POST", body: data });
+    const body = (await response.json()) as { id?: string; name?: string; size?: number | null; error?: string };
+    setUploading(false);
+    if (!response.ok || !body.id || !body.name) {
+      setDrawerStatus(body.error ?? "Unable to upload this file.");
+      return;
+    }
+    onAttachment({ id: body.id, name: body.name, size: body.size ?? null });
+    setDrawerStatus("File uploaded and shared with workspace members.");
+  };
+
+  const syncPullRequest = async () => {
+    setDrawerStatus("Synchronizing with GitHub…");
+    const response = await fetch(`/api/tasks/${item.id}/github`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ repositoryUrl: item.repositoryUrl }),
+    });
+    const body = (await response.json()) as { state?: string; error?: string };
+    setDrawerStatus(response.ok ? `GitHub pull request synchronized (${body.state ?? "updated"}).` : (body.error ?? "Unable to synchronize GitHub."));
+  };
   const review = item.review ?? {
     acceptanceCriteria: false,
     testsPassing: false,
@@ -1317,14 +1549,14 @@ function DetailDrawer({
             </div>
             {item.status === "in_progress" && (
               <button
-                onClick={() => setTracking(!tracking)}
-                className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold ${tracking ? "bg-rose-50 text-rose-700" : "bg-[#e7efe9] text-[#315c43]"}`}
+                onClick={() => void toggleTracking()}
+                className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold ${activeEntry ? "bg-rose-50 text-rose-700" : "bg-[#e7efe9] text-[#315c43]"}`}
               >
                 <Clock3 className="h-4 w-4" />
-                {tracking ? "Stop" : "Start"} ·{" "}
-                {String(Math.floor(seconds / 3600)).padStart(2, "0")}:
-                {String(Math.floor((seconds % 3600) / 60)).padStart(2, "0")}:
-                {String(seconds % 60).padStart(2, "0")}
+                {activeEntry ? "Stop" : "Start"} ·{" "}
+                {String(Math.floor((trackedSeconds + seconds) / 3600)).padStart(2, "0")}:
+                {String(Math.floor(((trackedSeconds + seconds) % 3600) / 60)).padStart(2, "0")}:
+                {String((trackedSeconds + seconds) % 60).padStart(2, "0")}
               </button>
             )}
           </div>
@@ -1413,7 +1645,34 @@ function DetailDrawer({
             </section>
           </div>
           <section className="mt-5 rounded-2xl border border-[#e0e5e0] bg-white p-5">
-            <h3 className="text-sm font-semibold">Developer handoff</h3>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold">Developer handoff</h3>
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-[#dce2dd] px-3 py-2 text-xs font-medium text-[#526158] hover:bg-[#f5f7f5]">
+                <Paperclip className="h-3.5 w-3.5" />
+                {uploading ? "Uploading…" : "Attach file"}
+                <input
+                  type="file"
+                  disabled={uploading}
+                  accept=".png,.jpg,.jpeg,.webp,.pdf,.txt,.md,.zip"
+                  className="sr-only"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void uploadFile(file);
+                    event.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
+            {item.attachmentRecords?.length ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {item.attachmentRecords.map((attachment) => (
+                  <a key={attachment.id} href={`/api/attachments/${attachment.id}`} className="inline-flex items-center gap-1.5 rounded-lg bg-[#eef3ef] px-3 py-2 text-[11px] text-[#3f5f4c] hover:bg-[#e2ebe5]">
+                    <FileText className="h-3.5 w-3.5" />
+                    {attachment.name}
+                  </a>
+                ))}
+              </div>
+            ) : null}
             <div className="mt-4 grid gap-3">
               <textarea
                 value={item.summary ?? ""}
@@ -1445,8 +1704,15 @@ function DetailDrawer({
                   />
                 </label>
               </div>
+              {item.repositoryUrl?.startsWith("https://github.com/") && (
+                <button onClick={() => void syncPullRequest()} className="inline-flex w-fit items-center gap-2 rounded-lg border border-[#dce2dd] px-3 py-2 text-xs font-medium text-[#526158] hover:bg-[#f5f7f5]">
+                  <GitBranch className="h-3.5 w-3.5" />
+                  Sync pull request
+                </button>
+              )}
             </div>
           </section>
+          {drawerStatus && <p role="status" className="mt-3 rounded-lg bg-[#eef3ef] px-3 py-2 text-xs text-[#526158]">{drawerStatus}</p>}
           <div className="mt-6 flex justify-end">
             {item.status === "dusk_intake" && (
               <button
@@ -1467,7 +1733,10 @@ function DetailDrawer({
             {item.status === "pending_senior_review" && (
               <button
                 disabled={!canReview || !ready}
-                onClick={() => onUpdate({ status: "dawn_shipped", review })}
+                  onClick={() => {
+                    onUpdate({ review });
+                    onAdvance();
+                  }}
                 className="inline-flex items-center gap-2 rounded-xl bg-[#d99328] px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Sun className="h-4 w-4" />

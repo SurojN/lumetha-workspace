@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { requireCompanyMembership } from "@/lib/auth";
 import { z } from "zod";
 import { rolesForUser } from "@/lib/roles";
+import { notifyTaskParticipants } from "@/lib/notifications";
 
 const createTaskSchema = z.object({
   title: z.string().trim().min(1).max(160),
@@ -39,6 +40,8 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
       include: {
         creator: true,
         assignee: true,
+        attachments: true,
+        pullRequests: { orderBy: { updatedAt: "desc" }, take: 5 },
         comments: {
           include: {
             user: true,
@@ -74,24 +77,41 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
       if (!cycle) return NextResponse.json({ error: "Delivery cycle is not active" }, { status: 409 });
     }
 
-    const task = await prisma.task.create({
-      data: {
-        title,
-        key,
-        description,
-        rawBrief,
-        projectId: id,
-        creatorId: user.id,
-        assigneeId,
-        type,
-        priority,
-        cycleId,
-        status: "dusk_intake",
-      },
-      include: {
-        creator: true,
-        assignee: true,
-      },
+    const task = await prisma.$transaction(async (tx) => {
+      const created = await tx.task.create({
+        data: {
+          title,
+          key,
+          description,
+          rawBrief,
+          projectId: id,
+          creatorId: user.id,
+          assigneeId,
+          type,
+          priority,
+          cycleId,
+          status: "dusk_intake",
+        },
+        include: {
+          creator: true,
+          assignee: true,
+        },
+      });
+      await tx.auditEvent.create({
+        data: {
+          actorId: user.id,
+          taskId: created.id,
+          cycleId,
+          action: "task.created",
+          details: { key: created.key, source: "workspace" },
+        },
+      });
+      await notifyTaskParticipants(tx, created.id, user.id, {
+        type: "task.created",
+        title: `${created.key} was added to Dusk Intake`,
+        message: `“${created.title}” is ready for the delivery pod.`,
+      });
+      return created;
     });
 
     return NextResponse.json(task, { status: 201 });

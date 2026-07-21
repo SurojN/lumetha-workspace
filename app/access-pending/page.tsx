@@ -12,7 +12,7 @@ export default async function AccessPendingPage() {
   if (user.role !== "pending" && membership) redirect("/");
   return (
     <main className="grid min-h-screen place-items-center bg-[#f5f8f5] p-5">
-      <section className="w-full max-w-lg rounded-3xl border border-[#dde5df] bg-white p-8 text-center shadow-[0_18px_50px_rgba(25,55,40,.08)] sm:p-10">
+      <section className="w-full max-w-lg rounded-3xl border border-[#dde5df] bg-white p-5 text-center shadow-[0_18px_50px_rgba(25,55,40,.08)] sm:p-10">
         <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#1D4B3B] text-white">
           <Sunrise className="h-6 w-6" />
         </span>
